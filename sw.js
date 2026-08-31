@@ -1,5 +1,5 @@
 // Singapore Photo Spots — minimal offline app-shell service worker
-const CACHE_NAME = 'sg-photo-spots-v1';
+const CACHE_NAME = 'sg-photo-spots-v2';
 const APP_SHELL = [
   './',
   './index.html',
