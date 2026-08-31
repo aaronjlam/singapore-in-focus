@@ -2,7 +2,7 @@
 
 An interactive map of 18 top photography locations across Singapore. Tap any pin to pop open a **photo balloon** showing a random shot from that spot, shuffle for another, or jump straight to real posts on Instagram, Pexels, Unsplash, 500px, and iStock.
 
-**[🌐 Live Demo →](#)** *(https://aaronjlam.github.io/singapore-in-focus/)*
+**[🌐 Live Demo →](#)** *(add your link here after deploying — see below)*
 
 ![Made with HTML/CSS/JS](https://img.shields.io/badge/stack-HTML%20%2F%20CSS%20%2F%20JS-blue)
 ![Leaflet.js](https://img.shields.io/badge/map-Leaflet.js-199900)
@@ -13,12 +13,23 @@ An interactive map of 18 top photography locations across Singapore. Tap any pin
 ## ✨ Features
 
 - 🗺️ **18 pinned Singapore locations** — Marina Bay Sands, Gardens by the Bay, Haji Lane, Chinatown, Sentosa, Changi Airport, and more
-- 🎈 **Tap-to-pop photo balloons** — click/tap a pin for an animated balloon popup with a random photo pick
+- 🎈 **Tap-to-pop photo balloons** — click/tap a pin for an animated balloon popup with a real thumbnail preview and a random photo pick
 - 🔀 **Shuffle button** — swap in another random photo from the same location without closing the balloon
-- 🔗 **150+ real, working links** to Instagram hashtag pages, Pexels, Unsplash, 500px, and iStock
+- 🔗 **90+ real, working links** to Instagram hashtag pages, Pexels, Unsplash, 500px, and iStock
 - 🤖 **AI-style recommendations panel** — locations ranked by a simple popularity algorithm
-- 📱 **Fully responsive** — works on desktop and mobile
-- ⚡ **Zero build step** — it's a single static HTML file, no npm install, no bundler
+
+### New in this version
+
+1. **📷 Real photo thumbnails** — balloon popups and post cards show real preview images (via [Lorem Picsum](https://picsum.photos), seeded per location) instead of emoji-only cards
+2. **📸 User-submitted community photos** — anyone can post a photo/caption to a location's "Community Photos" section (stored in the browser via `localStorage`, no backend needed)
+3. **🧭 "Plan my shoot" itinerary builder** — add locations to an itinerary, auto-optimize the visiting order by proximity (nearest-neighbor), and see the route drawn on the map
+4. **🌤️ Live weather + golden hour tag** — current Singapore temperature and today's sunset time (via free, no-key [Open-Meteo](https://open-meteo.com) and [sunrise-sunset.org](https://sunrise-sunset.org) APIs), with a "golden hour soon" flag near sunset
+5. **🔍 Search & filter bar** — filter locations by name, category (Landmarks, Gardens & Nature, Street & Heritage, Night & Skyline, Beach & Outdoor, Modern & Architecture), or best time of day
+6. **⭐ Favorites** — star any location to save it to a personal shortlist, persisted in `localStorage`
+7. **🔗 Shareable location links** — every location has a `?loc=slug` deep link that opens straight to that pin and its balloon
+8. **🏷️ Accessibility & trip-info badges** — each location shows crowd level, wheelchair accessibility, ticket requirements, and tripod policy
+9. **🌐 Multi-language UI** — English, 中文 (Chinese), Bahasa Melayu, and 日本語 (Japanese) interface toggle
+10. **📲 Installable PWA** — `manifest.json` + a minimal offline-caching service worker (`sw.js`) let visitors "Add to Home Screen" and reopen the app shell without a connection
 
 ---
 
@@ -70,12 +81,16 @@ This is a static site, so it also deploys as-is on:
 
 ```
 sg-photo-spots/
-├── index.html      # The entire app: map, styles, photo data, and logic
-├── README.md        # This file
-└── LICENSE           # MIT license
+├── index.html         # The entire app: map, styles, photo data, and logic
+├── manifest.json        # PWA manifest (installable app metadata)
+├── sw.js                  # Service worker — caches the app shell for offline use
+├── README.md            # This file
+└── LICENSE                 # MIT license
 ```
 
-Everything — HTML, CSS, and JavaScript (including the photo/location dataset) — lives in a single `index.html` for simplicity. This keeps deployment to a single static file with no build tooling.
+Almost everything — HTML, CSS, and JavaScript (including the photo/location dataset) — lives in a single `index.html` for simplicity. Only the two small PWA files (`manifest.json`, `sw.js`) are separate, since browsers require them as standalone files.
+
+> ⚠️ **Note on data persistence:** Favorites, itinerary, community photos, and language preference are stored in the visitor's own browser via `localStorage`. There's no shared backend/database — each visitor only sees their own saved data, and community photos submitted by one visitor won't be visible to others unless you wire up a real backend (see the customization notes below).
 
 ---
 
@@ -129,6 +144,12 @@ All location and photo data lives in the `photoAlgorithm.photosDatabase` array a
 Everything is in the `<style>` block at the top of `index.html` — search for `BALLOON POPUP STYLES` to find the popup-specific CSS.
 
 ---
+
+## ⚠️ Known Limitations
+
+- **Community photos & favorites are per-browser only** — they use `localStorage`, so they won't sync across devices or be visible to other visitors. To make community photos truly shared, connect a small backend (e.g. [Supabase](https://supabase.com) or [Firebase](https://firebase.google.com) free tier) and swap the `localStorage` calls in `addCommunityPhoto()` / `getCommunityPhotos()` for API calls.
+- **Weather and thumbnails require internet** — the weather widget and photo thumbnails call external free APIs (Open-Meteo, sunrise-sunset.org, Lorem Picsum) at runtime. If a visitor is fully offline, the service worker keeps the app shell loadable, but these live elements will show a fallback/blank state.
+- **Thumbnails are illustrative, not verified location photos** — since there's no paid image API key wired in, thumbnail images come from Lorem Picsum seeded per location for a consistent "real photo" look. Swap in a real Unsplash/Pexels API key (both have free tiers) in `thumbUrl()` if you want thumbnails guaranteed to match the actual place.
 
 ## 📄 License
 
