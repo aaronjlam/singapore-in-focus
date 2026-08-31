@@ -4,704 +4,526 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Singapore Photo Spots — Interactive Photography Map</title>
-    <meta name="description" content="Explore 18 of Singapore's best photography locations on an interactive map. Tap any pin for a random photo balloon, then browse 150+ real posts from Instagram, Pexels, Unsplash, 500px, and iStock." />
+    <meta name="description" content="Explore 18 Singapore photography locations. Tap a pin for a photo balloon, plan an itinerary, check golden hour, and browse 90+ real posts from Instagram, Pexels, Unsplash, 500px, and iStock." />
     <meta name="theme-color" content="#4285F4" />
-
-    <!-- Open Graph / social preview -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Singapore Photo Spots — Interactive Photography Map" />
-    <meta property="og:description" content="Tap a pin, get a photo balloon. 18 Singapore locations, 150+ real photo posts from 5 platforms." />
-
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎈</text></svg>" />
-
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%88</text></svg>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-        }
-
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
         .container { display: flex; height: 100vh; }
-
-        .sidebar {
-            width: 420px;
-            background: white;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            z-index: 100;
-            overflow-y: auto;
-        }
-
-        .sidebar-header {
-            background: linear-gradient(135deg, #4285F4 0%, #1967D2 100%);
-            color: white;
-            padding: 22px 20px;
-            font-size: 1.1em;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
-
+        .sidebar { width: 430px; background: white; box-shadow: 2px 0 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
+        .sidebar-header { background: linear-gradient(135deg, #4285F4 0%, #1967D2 100%); color: white; padding: 16px 18px; position: sticky; top: 0; z-index: 20; }
+        .sidebar-header-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .app-title { font-size: 1.05em; font-weight: 700; }
+        .app-subtitle { font-size: 0.72em; opacity: 0.9; margin-top: 2px; }
+        .lang-switcher { display: flex; gap: 4px; }
+        .lang-btn { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.4); color: white; border-radius: 5px; padding: 3px 6px; font-size: 0.68em; cursor: pointer; font-weight: 600; }
+        .lang-btn.active { background: white; color: #1967D2; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 16px; }
         #map { flex: 1; width: 100%; height: 100%; position: relative; }
 
-        .toggle-btn {
-            background: #7c3aed;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-bottom: 15px;
-            width: 100%;
-            transition: all 0.2s ease;
-            font-size: 0.95em;
-        }
+        .toggle-btn { background: #7c3aed; color: white; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: 500; margin-bottom: 12px; width: 100%; font-size: 0.9em; transition: all .2s; }
         .toggle-btn:hover { background: #6d28d9; }
+        .toggle-btn.secondary { background: #4285F4; }
+        .toggle-btn.secondary:hover { background: #1967D2; }
+        .btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .btn-row .toggle-btn { margin-bottom: 0; }
 
-        .location-name {
-            font-size: 1.4em;
-            font-weight: 600;
-            color: #202124;
-            margin-bottom: 12px;
-        }
+        /* Search & filters */
+        .search-box { position: relative; margin-bottom: 10px; }
+        .search-input { width: 100%; padding: 10px 12px 10px 34px; border-radius: 8px; border: 1px solid #dadce0; font-size: 0.9em; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.95em; opacity: 0.6; }
+        .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .chip { padding: 5px 10px; border-radius: 16px; border: 1.5px solid #dadce0; background: white; font-size: 0.75em; cursor: pointer; font-weight: 500; color: #444; }
+        .chip.active { background: #4285F4; border-color: #4285F4; color: white; }
+        .select-input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #dadce0; font-size: 0.85em; margin-bottom: 12px; background: white; }
 
-        .hint-box {
-            background: #fff8e1;
-            border-left: 3px solid #fbbf24;
-            padding: 10px 12px;
-            border-radius: 6px;
-            font-size: 0.85em;
-            color: #7a5c00;
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
+        /* Weather widget */
+        .weather-widget { background: linear-gradient(135deg, #fef9e7 0%, #e3f2fd 100%); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; border: 1px solid #ffe9a8; }
+        .weather-row { display: flex; justify-content: space-between; align-items: center; }
+        .weather-temp { font-size: 1.4em; font-weight: 700; color: #202124; }
+        .weather-detail { font-size: 0.75em; color: #5f6368; line-height: 1.5; }
+        .golden-hour-tag { display: inline-block; margin-top: 6px; background: #ff8f00; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.68em; font-weight: 700; }
 
-        .filter-section {
-            background: #f9f9f9;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-left: 3px solid #fbbf24;
-        }
-        .filter-label {
-            font-weight: 600; color: #5f6368; font-size: 0.85em;
-            text-transform: uppercase; margin-bottom: 8px;
-        }
+        /* Location list (search results) */
+        .loc-list-item { display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid #eee; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: all .15s; }
+        .loc-list-item:hover { border-color: #4285F4; background: #f8faff; }
+        .loc-list-name { font-weight: 600; font-size: 0.9em; color: #202124; }
+        .loc-list-meta { font-size: 0.72em; color: #80868b; margin-top: 2px; }
+        .loc-list-star { font-size: 1.1em; cursor: pointer; }
+
+        /* Badges */
+        .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+        .info-badge { background: #f1f3f4; color: #444; padding: 4px 9px; border-radius: 6px; font-size: 0.72em; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+        .crowd-high { background: #fde0e0; color: #a30000; }
+        .crowd-medium { background: #fff4d6; color: #8a6100; }
+        .crowd-low { background: #dff5e1; color: #14622a; }
+
+        .location-name { font-size: 1.3em; font-weight: 700; color: #202124; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .fav-star-btn { background: none; border: none; font-size: 1.3em; cursor: pointer; }
+        .hint-box { background: #fff8e1; border-left: 3px solid #fbbf24; padding: 9px 11px; border-radius: 6px; font-size: 0.8em; color: #7a5c00; margin-bottom: 12px; line-height: 1.4; }
+
+        .section-title { font-weight: 700; color: #202124; margin: 14px 0 8px; font-size: 0.88em; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: .3px; }
+
+        .filter-section { background: #f9f9f9; border-radius: 6px; padding: 12px; margin-bottom: 12px; border-left: 3px solid #fbbf24; }
+        .filter-label { font-weight: 600; color: #5f6368; font-size: 0.8em; text-transform: uppercase; margin-bottom: 8px; }
         .platform-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-        .platform-tab {
-            padding: 6px 12px; border-radius: 20px; border: 2px solid #dadce0;
-            background: white; cursor: pointer; font-size: 0.8em; font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        .platform-tab:hover { border-color: #4285f4; color: #4285f4; }
+        .platform-tab { padding: 6px 12px; border-radius: 20px; border: 2px solid #dadce0; background: white; cursor: pointer; font-size: 0.78em; font-weight: 500; }
         .platform-tab.active { border-color: #4285f4; background: #4285f4; color: white; }
         .platform-count { font-size: 0.7em; margin-left: 2px; }
 
-        .public-posts-section {
-            background: white; border-radius: 8px; padding: 16px;
-            margin-bottom: 15px; border: 1px solid #dadce0;
-        }
-        .section-title {
-            font-weight: 600; color: #202124; margin-bottom: 12px;
-            font-size: 0.95em; display: flex; align-items: center; gap: 8px;
-        }
+        .public-posts-section, .community-section, .itinerary-section { background: white; border-radius: 8px; padding: 14px; margin-bottom: 12px; border: 1px solid #dadce0; }
 
-        .photo-post-card {
-            background: #f9f9f9; border-radius: 8px; padding: 12px;
-            margin-bottom: 10px; border-left: 4px solid #4285f4;
-            transition: all 0.2s ease; cursor: pointer;
-        }
-        .photo-post-card:hover {
-            background: #f1f3f4; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-        .post-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-        .post-icon { font-size: 1.6em; flex-shrink: 0; }
+        .photo-post-card { background: #f9f9f9; border-radius: 8px; padding: 10px; margin-bottom: 9px; border-left: 4px solid #4285f4; display: flex; gap: 10px; }
+        .post-thumb { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #eee; }
         .post-info { flex: 1; min-width: 0; }
-        .post-platform { font-weight: 600; color: #1967d2; font-size: 0.8em; }
-        .post-title { font-weight: 500; color: #202124; font-size: 0.9em; margin: 2px 0 4px; word-break: break-word; }
-        .post-meta { font-size: 0.75em; color: #80868b; display: flex; gap: 10px; margin-bottom: 6px; }
-        .post-hashtags { font-size: 0.75em; color: #1967d2; line-height: 1.3; margin-bottom: 6px; word-break: break-word; }
-        .post-hashtag { display: inline-block; margin-right: 3px; }
-
-        .post-button {
-            display: inline-block; background: #1967d2; color: white; padding: 6px 12px;
-            border-radius: 4px; text-decoration: none; font-size: 0.75em; font-weight: 500;
-            cursor: pointer; border: none; transition: all 0.2s ease;
-        }
-        .post-button:hover { background: #1554b1; text-decoration: none; }
-        .post-button.instagram { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+        .post-platform { font-weight: 600; color: #1967d2; font-size: 0.75em; }
+        .post-title { font-weight: 500; color: #202124; font-size: 0.85em; margin: 2px 0 4px; word-break: break-word; }
+        .post-meta { font-size: 0.7em; color: #80868b; display: flex; gap: 10px; margin-bottom: 5px; }
+        .post-hashtags { font-size: 0.7em; color: #1967d2; margin-bottom: 5px; }
+        .post-button { display: inline-block; background: #1967d2; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 0.7em; font-weight: 600; }
+        .post-button.instagram { background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); }
         .post-button.pexels { background: #05A081; }
-        .post-button.unsplash { background: #000000; }
+        .post-button.unsplash { background: #000; }
         .post-button.500px { background: #0099E5; }
         .post-button.istockphoto { background: #007DB8; }
-        .external-icon { margin-left: 3px; font-size: 0.8em; }
 
-        .recommendation-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-        .recommendation-item {
-            background: white; padding: 12px; border-radius: 6px;
-            border-left: 3px solid #7c3aed; cursor: pointer; transition: all 0.2s ease;
-        }
-        .recommendation-item:hover { background: #f8f9fa; transform: translateX(4px); }
-        .rec-location { font-weight: 500; color: #202124; margin-bottom: 4px; font-size: 0.95em; }
-        .rec-info { font-size: 0.8em; color: #5f6368; display: flex; justify-content: space-between; align-items: center; }
-        .rec-score { display: inline-block; background: #7c3aed; color: white; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+        .recommendation-grid { display: grid; gap: 8px; }
+        .recommendation-item { background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #7c3aed; cursor: pointer; }
+        .recommendation-item:hover { background: #f8f9fa; }
+        .rec-location { font-weight: 500; color: #202124; margin-bottom: 4px; font-size: 0.92em; }
+        .rec-info { font-size: 0.78em; color: #5f6368; display: flex; justify-content: space-between; align-items: center; }
+        .rec-score { background: #7c3aed; color: white; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+
+        /* Community photo form */
+        .community-photo-item { background: #f9f9f9; border-radius: 8px; padding: 10px; margin-bottom: 8px; border-left: 4px solid #10b981; }
+        .community-form input, .community-form textarea { width: 100%; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 6px; font-size: 0.82em; margin-bottom: 8px; font-family: inherit; }
+        .community-empty { font-size: 0.8em; color: #999; padding: 10px 0; text-align: center; }
+
+        /* Itinerary */
+        .itinerary-item { display: flex; align-items: center; gap: 8px; background: #f9f9f9; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid #ff8f00; }
+        .itinerary-order { background: #ff8f00; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 0.7em; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+        .itinerary-remove { margin-left: auto; background: none; border: none; color: #a30000; cursor: pointer; font-size: 0.85em; }
+        .itinerary-add-btn { background: #ff8f00; }
+        .itinerary-add-btn.added { background: #10b981; }
 
         @media (max-width: 768px) {
             .container { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; max-height: 45vh; }
-            #map { height: 55vh; }
+            .sidebar { width: 100%; height: auto; max-height: 48vh; }
+            #map { height: 52vh; }
         }
-
         .sidebar-content::-webkit-scrollbar { width: 6px; }
         .sidebar-content::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 3px; }
-        .no-results { padding: 20px; text-align: center; color: #80868b; font-size: 0.9em; }
+        .no-results { padding: 18px; text-align: center; color: #80868b; font-size: 0.88em; }
 
-        /* ============ BALLOON POPUP STYLES ============ */
-        .leaflet-popup-content-wrapper {
-            border-radius: 12px;
-            padding: 0;
-            overflow: hidden;
-        }
-        .leaflet-popup-content {
-            margin: 0;
-            width: 280px !important;
-        }
-        .leaflet-popup-tip {
-            background: white;
-        }
+        /* Balloon popup */
+        .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
+        .leaflet-popup-content { margin: 0; width: 280px !important; }
+        .balloon-popup { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .balloon-header { background: linear-gradient(135deg, #4285F4 0%, #1967D2 100%); color: white; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+        .balloon-location-name { font-weight: 700; font-size: 0.95em; }
+        .balloon-subtitle { font-size: 0.7em; opacity: 0.9; }
+        .balloon-fav { background: none; border: none; font-size: 1.2em; cursor: pointer; color: white; }
+        .balloon-photo-display { position: relative; text-align: center; background: #eee; }
+        .balloon-photo-img { width: 100%; height: 150px; object-fit: cover; display: block; animation: fadeIn .3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .balloon-photo-caption { font-weight: 600; color: #202124; font-size: 0.82em; padding: 8px 10px 0; }
+        .balloon-photo-source { display: inline-block; background: #f1f3f4; padding: 2px 8px; border-radius: 10px; font-size: 0.66em; font-weight: 600; color: #5f6368; margin: 4px 10px 0; }
+        .balloon-photo-likes { font-size: 0.7em; color: #80868b; padding: 4px 10px 0; }
+        .balloon-dots { display: flex; justify-content: center; gap: 4px; padding: 8px 0 6px; }
+        .balloon-dot { width: 6px; height: 6px; border-radius: 50%; background: #dadce0; }
+        .balloon-dot.active { background: #4285f4; width: 15px; border-radius: 3px; }
+        .balloon-body { padding: 6px 12px 12px; }
+        .balloon-hashtags { font-size: 0.66em; color: #1967d2; margin-bottom: 8px; }
+        .balloon-buttons { display: flex; gap: 6px; margin-bottom: 6px; }
+        .balloon-btn { flex: 1; text-align: center; padding: 7px 5px; border-radius: 6px; text-decoration: none; font-size: 0.68em; font-weight: 700; color: white; cursor: pointer; border: none; }
+        .balloon-btn.view-link { background: #1967d2; }
+        .balloon-btn.shuffle { background: #7c3aed; }
+        .balloon-btn.itin { background: #ff8f00; }
+        .balloon-btn.itin.added { background: #10b981; }
+        .balloon-details-link { display: block; text-align: center; font-size: 0.72em; color: #7c3aed; font-weight: 600; cursor: pointer; padding-top: 4px; }
 
-        .balloon-popup {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        .balloon-header {
-            background: linear-gradient(135deg, #4285F4 0%, #1967D2 100%);
-            color: white;
-            padding: 12px 14px;
-        }
-
-        .balloon-location-name {
-            font-weight: 700;
-            font-size: 1em;
-            margin-bottom: 2px;
-        }
-
-        .balloon-subtitle {
-            font-size: 0.75em;
-            opacity: 0.9;
-        }
-
-        .balloon-photo-display {
-            background: linear-gradient(135deg, #f3e5f5 0%, #e3f2fd 100%);
-            padding: 24px 14px;
-            text-align: center;
-            position: relative;
-        }
-
-        .balloon-photo-emoji {
-            font-size: 3.5em;
-            margin-bottom: 8px;
-            animation: floatBalloon 2s ease-in-out infinite;
-        }
-
-        @keyframes floatBalloon {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-6px); }
-        }
-
-        .balloon-photo-caption {
-            font-weight: 600;
-            color: #202124;
-            font-size: 0.85em;
-            margin-bottom: 4px;
-        }
-
-        .balloon-photo-source {
-            display: inline-block;
-            background: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 0.7em;
-            font-weight: 600;
-            color: #5f6368;
-            margin-top: 4px;
-        }
-
-        .balloon-photo-likes {
-            font-size: 0.75em;
-            color: #80868b;
-            margin-top: 6px;
-        }
-
-        .balloon-body {
-            padding: 12px 14px;
-        }
-
-        .balloon-hashtags {
-            font-size: 0.7em;
-            color: #1967d2;
-            line-height: 1.4;
-            margin-bottom: 10px;
-            word-break: break-word;
-        }
-
-        .balloon-buttons {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .balloon-btn {
-            flex: 1;
-            text-align: center;
-            padding: 8px 6px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 0.72em;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
-        }
-
-        .balloon-btn:hover {
-            opacity: 0.88;
-            text-decoration: none;
-        }
-
-        .balloon-btn.view-link {
-            background: #1967d2;
-        }
-
-        .balloon-btn.shuffle {
-            background: #7c3aed;
-        }
-
-        .balloon-platform-icon {
-            font-size: 1.1em;
-            margin-right: 3px;
-        }
-
-        .balloon-dots {
-            display: flex;
-            justify-content: center;
-            gap: 4px;
-            padding: 8px 0 12px;
-        }
-
-        .balloon-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #dadce0;
-            transition: all 0.2s ease;
-        }
-
-        .balloon-dot.active {
-            background: #4285f4;
-            width: 16px;
-            border-radius: 3px;
-        }
-
-        .map-marker-pulse {
-            border-radius: 50%;
-            box-shadow: 0 0 0 rgba(66, 133, 244, 0.6);
-            animation: pulse-marker 2s infinite;
-        }
-
-        @keyframes pulse-marker {
-            0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.6); }
-            70% { box-shadow: 0 0 0 10px rgba(66, 133, 244, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
-        }
+        .map-marker-pulse { border-radius: 50%; }
+        @keyframes pulse-marker { 0% { box-shadow: 0 0 0 0 rgba(66,133,244,.6); } 70% { box-shadow: 0 0 0 10px rgba(66,133,244,0); } 100% { box-shadow: 0 0 0 0 rgba(66,133,244,0); } }
+        .map-marker-pulse { animation: pulse-marker 2s infinite; }
+        .map-marker-pulse.favorited { background-color: #ff8f00 !important; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="sidebar">
-            <div class="sidebar-header">📍 Singapore Photo Locations - Tap Pins for Photo Balloons 🎈</div>
-            <div class="sidebar-content" id="sidebarContent">
-                <button class="toggle-btn" onclick="toggleAlgorithmPanel()">
-                    🤖 Show All Recommendations
-                </button>
-                <div class="hint-box">
-                    🎈 <strong>New!</strong> Tap any pin on the map to pop open a balloon window showing a random photo from that location. Tap "Shuffle" to see another random photo, or tap "View" to open the real post.
+            <div class="sidebar-header">
+                <div class="sidebar-header-top">
+                    <div>
+                        <div class="app-title" data-i18n="appTitle">📍 Singapore Photo Spots</div>
+                        <div class="app-subtitle" data-i18n="appSubtitle">Tap a pin for a photo balloon 🎈</div>
+                    </div>
+                    <div class="lang-switcher" id="langSwitcher">
+                        <button class="lang-btn active" data-lang="en">EN</button>
+                        <button class="lang-btn" data-lang="zh">中文</button>
+                        <button class="lang-btn" data-lang="ms">BM</button>
+                        <button class="lang-btn" data-lang="ja">日本</button>
+                    </div>
                 </div>
-                <p style="color: #999; text-align: center; font-size: 0.9em; line-height: 1.5;">Click a location on the map to view real photo posts from Instagram, Pexels, Unsplash, 500px, and iStock</p>
             </div>
+            <div class="sidebar-content" id="sidebarContent"></div>
         </div>
         <div id="map"></div>
     </div>
-
-    <!-- Algorithm Module -->
     <script>
-        const photoAlgorithm = {
-            photosDatabase: [
-                // MARINA BAY SANDS (5 posts)
-                { id: "mbs_001", location: "Marina Bay Sands", time: "sunset", hashtags: "#marinabayphoto #singaporephotography #sunsetphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/marinabayphoto/", title: "Golden hour at Marina Bay Sands", source: "Instagram Hashtag", likes: 1250, emoji: "🏨" },
-                { id: "mbs_002", location: "Marina Bay Sands", time: "night", hashtags: "#nightphoto #singaporephotography #cityscape", platform: "pexels", link: "https://www.pexels.com/search/marina%20bay%20sands/", title: "Marina Bay Sands Night Photography", source: "Pexels Free Stock", likes: 890, emoji: "🌃" },
-                { id: "mbs_003", location: "Marina Bay Sands", time: "sunset", hashtags: "#sunsetphoto #architecturephoto #singaporephotography", platform: "unsplash", link: "https://unsplash.com/s/photos/marina-bay-sands-singapore", title: "Marina Bay Sands Sunset Reflection", source: "Unsplash Free Photos", likes: 1100, emoji: "🌅" },
-                { id: "mbs_004", location: "Marina Bay Sands", time: "evening", hashtags: "#architecturephoto #singaporephotography #buildingphoto", platform: "500px", link: "https://500px.com/search?q=marina+bay+sands+singapore", title: "Marina Bay Iconic Architecture Photo", source: "500px Professional", likes: 950, emoji: "🏙️" },
-                { id: "mbs_005", location: "Marina Bay Sands", time: "night", hashtags: "#nightphoto #cityphoto #singaporephotography", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=marina%20bay%20sands%20singapore", title: "Marina Bay Sands Night City Photo", source: "iStock Photos", likes: 780, emoji: "✨" },
+    /* ============================================================
+       I18N — basic UI string translations (EN / ZH / MS / JA)
+       ============================================================ */
+    const i18n = {
+        en: { appTitle: "📍 Singapore Photo Spots", appSubtitle: "Tap a pin for a photo balloon 🎈", searchPlaceholder: "Search locations...", allCategories: "All", showRecommendations: "🤖 Show All Recommendations", backToMap: "🗺️ Back to Map", myItinerary: "🧭 My Itinerary", favorites: "⭐ Favorites", weatherNow: "Now in Singapore", goldenHourSoon: "🌇 Golden hour soon!", addToItinerary: "Add to Itinerary", addedToItinerary: "Added ✓", removeFromItinerary: "Remove", optimizeRoute: "Optimize Route", clearItinerary: "Clear All", itineraryEmpty: "No stops yet — add locations from any pin or list item.", communityPhotos: "Community Photos", shareYourPhoto: "Share Your Photo", yourName: "Your name", caption: "Caption / story", imageUrlOptional: "Image URL (optional)", submit: "Post Photo", noCommunityPhotos: "No community photos yet — be the first!", publicPosts: "Real Public Photo Posts", tripInfo: "Trip Info", shuffle: "🔀 Shuffle", viewOn: "View", backToAll: "← Back to All", shareLink: "🔗 Copy Share Link", linkCopied: "Link copied!", filterByTime: "Best time", anyTime: "Any time" },
+        zh: { appTitle: "📍 新加坡摄影地图", appSubtitle: "点击图钉查看照片气球 🎈", searchPlaceholder: "搜索地点...", allCategories: "全部", showRecommendations: "🤖 显示所有推荐", backToMap: "🗺️ 返回地图", myItinerary: "🧭 我的行程", favorites: "⭐ 收藏", weatherNow: "新加坡实时天气", goldenHourSoon: "🌇 黄金时段即将到来!", addToItinerary: "加入行程", addedToItinerary: "已加入 ✓", removeFromItinerary: "移除", optimizeRoute: "优化路线", clearItinerary: "清空", itineraryEmpty: "还没有行程 — 从图钉或列表添加地点。", communityPhotos: "社区照片", shareYourPhoto: "分享你的照片", yourName: "你的名字", caption: "说明 / 故事", imageUrlOptional: "图片链接（可选）", submit: "发布照片", noCommunityPhotos: "还没有社区照片 — 成为第一个吧!", publicPosts: "真实公开照片帖子", tripInfo: "旅行信息", shuffle: "🔀 换一张", viewOn: "查看", backToAll: "← 返回全部", shareLink: "🔗 复制分享链接", linkCopied: "链接已复制!", filterByTime: "最佳时间", anyTime: "任何时间" },
+        ms: { appTitle: "📍 Lokasi Foto Singapura", appSubtitle: "Ketik pin untuk belon foto 🎈", searchPlaceholder: "Cari lokasi...", allCategories: "Semua", showRecommendations: "🤖 Tunjuk Semua Cadangan", backToMap: "🗺️ Kembali ke Peta", myItinerary: "🧭 Itinerari Saya", favorites: "⭐ Kegemaran", weatherNow: "Sekarang di Singapura", goldenHourSoon: "🌇 Golden hour tidak lama lagi!", addToItinerary: "Tambah ke Itinerari", addedToItinerary: "Ditambah ✓", removeFromItinerary: "Buang", optimizeRoute: "Optimumkan Laluan", clearItinerary: "Kosongkan", itineraryEmpty: "Belum ada perhentian — tambah lokasi dari pin atau senarai.", communityPhotos: "Foto Komuniti", shareYourPhoto: "Kongsi Foto Anda", yourName: "Nama anda", caption: "Kapsyen / cerita", imageUrlOptional: "URL Imej (pilihan)", submit: "Hantar Foto", noCommunityPhotos: "Belum ada foto komuniti — jadi yang pertama!", publicPosts: "Siaran Foto Awam Sebenar", tripInfo: "Info Perjalanan", shuffle: "🔀 Kocok", viewOn: "Lihat", backToAll: "← Kembali", shareLink: "🔗 Salin Pautan", linkCopied: "Pautan disalin!", filterByTime: "Masa terbaik", anyTime: "Bila-bila masa" },
+        ja: { appTitle: "📍 シンガポール撮影スポット", appSubtitle: "ピンをタップして写真バルーン表示 🎈", searchPlaceholder: "場所を検索...", allCategories: "すべて", showRecommendations: "🤖 おすすめをすべて表示", backToMap: "🗺️ 地図に戻る", myItinerary: "🧭 マイ旅程", favorites: "⭐ お気に入り", weatherNow: "シンガポールの現在", goldenHourSoon: "🌇 まもなくゴールデンアワー!", addToItinerary: "旅程に追加", addedToItinerary: "追加済み ✓", removeFromItinerary: "削除", optimizeRoute: "ルート最適化", clearItinerary: "すべて削除", itineraryEmpty: "まだ予定がありません — ピンやリストから場所を追加してください。", communityPhotos: "コミュニティ写真", shareYourPhoto: "写真をシェア", yourName: "お名前", caption: "キャプション / 説明", imageUrlOptional: "画像URL（任意）", submit: "投稿する", noCommunityPhotos: "まだ投稿がありません — 最初の投稿者になろう!", publicPosts: "実際の公開写真投稿", tripInfo: "旅行情報", shuffle: "🔀 シャッフル", viewOn: "見る", backToAll: "← 一覧に戻る", shareLink: "🔗 共有リンクをコピー", linkCopied: "リンクをコピーしました!", filterByTime: "ベストタイム", anyTime: "いつでも" }
+    };
+    let currentLang = localStorage.getItem('sgphoto_lang') || 'en';
+    function t(key) { return (i18n[currentLang] && i18n[currentLang][key]) || i18n.en[key] || key; }
 
-                // GARDENS BY THE BAY (5 posts)
-                { id: "gbtb_001", location: "Gardens by the Bay", time: "night", hashtags: "#supertreephoto #gardensphoto #nightphoto #singaporephotography", platform: "instagram", link: "https://www.instagram.com/explore/tags/gardensbythebayphoto/", title: "Supertree Grove Night Photography", source: "Instagram Hashtag", likes: 1500, emoji: "🌳" },
-                { id: "gbtb_002", location: "Gardens by the Bay", time: "night", hashtags: "#floralsphoto #gardensphoto #nightphoto #singaporephotography", platform: "pexels", link: "https://www.pexels.com/search/gardens%20by%20the%20bay/", title: "Gardens by the Bay Free Stock Photo", source: "Pexels Free Stock", likes: 1200, emoji: "🌺" },
-                { id: "gbtb_003", location: "Gardens by the Bay", time: "evening", hashtags: "#gardensphoto #flowersphoto #singaporephotography #naturephoto", platform: "unsplash", link: "https://unsplash.com/s/photos/gardens-by-the-bay", title: "Gardens by the Bay Unsplash Collection", source: "Unsplash Free Photos", likes: 1350, emoji: "🌸" },
-                { id: "gbtb_004", location: "Gardens by the Bay", time: "night", hashtags: "#supertreephoto #architecturephoto #singaporephotography #lightphoto", platform: "500px", link: "https://500px.com/search?q=gardens+by+the+bay+singapore", title: "Gardens by the Bay 500px Gallery", source: "500px Professional", likes: 1400, emoji: "💡" },
-                { id: "gbtb_005", location: "Gardens by the Bay", time: "night", hashtags: "#flowersphoto #gardensphoto #singaporephotography #nightphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=gardens%20by%20the%20bay%20singapore", title: "Gardens by the Bay Stock Photo Collection", source: "iStock Photos", likes: 1100, emoji: "🌿" },
+    /* ============================================================
+       LOCATIONS — with extended metadata for badges/filters
+       ============================================================ */
+    const locations = [
+        { name: "Marina Bay Sands", slug: "marina-bay-sands", lat: 1.2855, lng: 103.8565, category: "Landmarks", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free view / paid Skypark", crowd: "high", tripod: "✅ Tripod OK outdoors" },
+        { name: "Gardens by the Bay", slug: "gardens-by-the-bay", lat: 1.2816, lng: 103.8636, category: "Gardens & Nature", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free outdoor / paid domes", crowd: "high", tripod: "✅ Tripod OK" },
+        { name: "Haji Lane", slug: "haji-lane", lat: 1.2965, lng: 103.8575, category: "Street & Heritage", accessibility: "🚶 Narrow walkway", ticket: "🎟️ Free", crowd: "medium", tripod: "⚠️ Tripod discouraged (narrow)" },
+        { name: "Chinatown", slug: "chinatown", lat: 1.2804, lng: 103.8429, category: "Street & Heritage", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", crowd: "high", tripod: "✅ Tripod OK early morning" },
+        { name: "Merlion Park", slug: "merlion-park", lat: 1.2870, lng: 103.8547, category: "Landmarks", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", crowd: "high", tripod: "✅ Tripod OK" },
+        { name: "Helix Bridge", slug: "helix-bridge", lat: 1.2880, lng: 103.8597, category: "Night & Skyline", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", crowd: "medium", tripod: "✅ Tripod OK" },
+        { name: "Koon Seng Road", slug: "koon-seng-road", lat: 1.3218, lng: 103.8902, category: "Street & Heritage", accessibility: "🚶 Regular sidewalk", ticket: "🎟️ Free (residential — be respectful)", crowd: "low", tripod: "✅ Tripod OK" },
+        { name: "Sentosa Island", slug: "sentosa-island", lat: 1.2489, lng: 103.8303, category: "Beach & Outdoor", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Entry fee applies", crowd: "high", tripod: "✅ Tripod OK" },
+        { name: "Singapore Flyer", slug: "singapore-flyer", lat: 1.2816, lng: 103.8632, category: "Landmarks", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Paid ride", crowd: "medium", tripod: "⚠️ Not inside cabin" },
+        { name: "Arab Street", slug: "arab-street", lat: 1.2980, lng: 103.8570, category: "Street & Heritage", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", crowd: "medium", tripod: "✅ Tripod OK" },
+        { name: "Clarke Quay", slug: "clarke-quay", lat: 1.2899, lng: 103.8479, category: "Night & Skyline", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", crowd: "high", tripod: "✅ Tripod OK" },
+        { name: "Marina Barrage", slug: "marina-barrage", lat: 1.2736, lng: 103.8433, category: "Gardens & Nature", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", crowd: "low", tripod: "✅ Tripod OK" },
+        { name: "Singapore Botanic Gardens", slug: "botanic-gardens", lat: 1.3153, lng: 103.8157, category: "Gardens & Nature", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free (Orchid Garden paid)", crowd: "medium", tripod: "✅ Tripod OK" },
+        { name: "Universal Studios Singapore", slug: "universal-studios", lat: 1.2561, lng: 103.8229, category: "Modern & Architecture", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Entry fee applies", crowd: "high", tripod: "⚠️ Tripods restricted" },
+        { name: "Esplanade", slug: "esplanade", lat: 1.2890, lng: 103.8550, category: "Modern & Architecture", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free exterior", crowd: "medium", tripod: "✅ Tripod OK" },
+        { name: "MacRitchie Reservoir", slug: "macritchie-reservoir", lat: 1.3365, lng: 103.8277, category: "Beach & Outdoor", accessibility: "🥾 Uneven nature trails", ticket: "🎟️ Free", crowd: "low", tripod: "✅ Tripod OK" },
+        { name: "East Coast Park", slug: "east-coast-park", lat: 1.2964, lng: 103.9054, category: "Beach & Outdoor", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", crowd: "medium", tripod: "✅ Tripod OK" },
+        { name: "Changi Airport", slug: "changi-airport", lat: 1.3644, lng: 103.9915, category: "Modern & Architecture", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free public areas", crowd: "high", tripod: "✅ Tripod OK most areas" }
+    ];
+    const categories = [...new Set(locations.map(l => l.category))];
 
-                // HAJI LANE (5 posts)
-                { id: "haji_001", location: "Haji Lane", time: "morning", hashtags: "#streetartphoto #muralsphoto #streetphotography #singaporephotography #colorfulphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/haliphoto/", title: "Haji Lane Street Art Photo", source: "Instagram Hashtag", likes: 1100, emoji: "🎨" },
-                { id: "haji_002", location: "Haji Lane", time: "morning", hashtags: "#streetphotography #muralsphoto #colorfulphoto #singaporephotography", platform: "pexels", link: "https://www.pexels.com/search/street%20art%20singapore/", title: "Singapore Street Art Photography", source: "Pexels Free Stock", likes: 950, emoji: "🖌️" },
-                { id: "haji_003", location: "Haji Lane", time: "morning", hashtags: "#streetartphoto #muralsphoto #colorfulphoto #singaporephotography #architecturephoto", platform: "unsplash", link: "https://unsplash.com/s/photos/singapore-street-art", title: "Singapore Street Art Unsplash Photos", source: "Unsplash Free Photos", likes: 1050, emoji: "🌈" },
-                { id: "haji_004", location: "Haji Lane", time: "morning", hashtags: "#streetphotography #muralsphoto #colorfulphoto #singaporephotography", platform: "500px", link: "https://500px.com/search?q=haji+lane+singapore", title: "Haji Lane 500px Photography", source: "500px Professional", likes: 1000, emoji: "🖼️" },
-                { id: "haji_005", location: "Haji Lane", time: "morning", hashtags: "#streetartphoto #muralsphoto #singaporephotography #colorfulphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=singapore%20street%20art", title: "Singapore Street Art Stock Photos", source: "iStock Photos", likes: 880, emoji: "🎭" },
+    /* ============================================================
+       PHOTO ALGORITHM — dataset + analysis + favorites + itinerary
+       ============================================================ */
+    const photoAlgorithm = {
+        photosDatabase: [
+            { id:"mbs_001", location:"Marina Bay Sands", time:"sunset", hashtags:"#marinabayphoto #singaporephotography #sunsetphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/marinabayphoto/", title:"Golden hour at Marina Bay Sands", likes:1250, emoji:"🏨" },
+            { id:"mbs_002", location:"Marina Bay Sands", time:"night", hashtags:"#nightphoto #singaporephotography #cityscape", platform:"pexels", link:"https://www.pexels.com/search/marina%20bay%20sands/", title:"Marina Bay Sands Night Photography", likes:890, emoji:"🌃" },
+            { id:"mbs_003", location:"Marina Bay Sands", time:"sunset", hashtags:"#sunsetphoto #architecturephoto #singaporephotography", platform:"unsplash", link:"https://unsplash.com/s/photos/marina-bay-sands-singapore", title:"Marina Bay Sands Sunset Reflection", likes:1100, emoji:"🌅" },
+            { id:"mbs_004", location:"Marina Bay Sands", time:"evening", hashtags:"#architecturephoto #singaporephotography #buildingphoto", platform:"500px", link:"https://500px.com/search?q=marina+bay+sands+singapore", title:"Marina Bay Iconic Architecture Photo", likes:950, emoji:"🏙️" },
+            { id:"mbs_005", location:"Marina Bay Sands", time:"night", hashtags:"#nightphoto #cityphoto #singaporephotography", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=marina%20bay%20sands%20singapore", title:"Marina Bay Sands Night City Photo", likes:780, emoji:"✨" },
 
-                // CHINATOWN (5 posts)
-                { id: "chinatown_001", location: "Chinatown", time: "night", hashtags: "#nightphoto #chinatownphoto #singaporephotography #templephotograph #culturalphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/chinatownphoto/", title: "Chinatown Night Photography", source: "Instagram Hashtag", likes: 1000, emoji: "🏮" },
-                { id: "chinatown_002", location: "Chinatown", time: "evening", hashtags: "#nightphoto #culturalphoto #singaporephotography #architecturephoto", platform: "pexels", link: "https://www.pexels.com/search/chinatown%20singapore/", title: "Singapore Chinatown Photography", source: "Pexels Free Stock", likes: 850, emoji: "🥟" },
-                { id: "chinatown_003", location: "Chinatown", time: "night", hashtags: "#nightphoto #culturalphoto #singaporephotography #templeography #architecturephoto", platform: "unsplash", link: "https://unsplash.com/s/photos/singapore-chinatown", title: "Singapore Chinatown Unsplash Photos", source: "Unsplash Free Photos", likes: 920, emoji: "🏯" },
-                { id: "chinatown_004", location: "Chinatown", time: "night", hashtags: "#nightphoto #culturalphoto #singaporephotography #templeograph", platform: "500px", link: "https://500px.com/search?q=chinatown+singapore", title: "Chinatown 500px Gallery", source: "500px Professional", likes: 880, emoji: "🧧" },
-                { id: "chinatown_005", location: "Chinatown", time: "evening", hashtags: "#nightphoto #culturalphoto #singaporephotography #templeograph #architecturephoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=singapore%20chinatown", title: "Singapore Chinatown Stock Photos", source: "iStock Photos", likes: 790, emoji: "🪭" },
+            { id:"gbtb_001", location:"Gardens by the Bay", time:"night", hashtags:"#supertreephoto #gardensphoto #nightphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/gardensbythebayphoto/", title:"Supertree Grove Night Photography", likes:1500, emoji:"🌳" },
+            { id:"gbtb_002", location:"Gardens by the Bay", time:"night", hashtags:"#floralsphoto #gardensphoto #nightphoto", platform:"pexels", link:"https://www.pexels.com/search/gardens%20by%20the%20bay/", title:"Gardens by the Bay Free Stock Photo", likes:1200, emoji:"🌺" },
+            { id:"gbtb_003", location:"Gardens by the Bay", time:"evening", hashtags:"#gardensphoto #flowersphoto #naturephoto", platform:"unsplash", link:"https://unsplash.com/s/photos/gardens-by-the-bay", title:"Gardens by the Bay Unsplash Collection", likes:1350, emoji:"🌸" },
+            { id:"gbtb_004", location:"Gardens by the Bay", time:"night", hashtags:"#supertreephoto #architecturephoto #lightphoto", platform:"500px", link:"https://500px.com/search?q=gardens+by+the+bay+singapore", title:"Gardens by the Bay 500px Gallery", likes:1400, emoji:"💡" },
+            { id:"gbtb_005", location:"Gardens by the Bay", time:"night", hashtags:"#flowersphoto #gardensphoto #nightphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=gardens%20by%20the%20bay%20singapore", title:"Gardens by the Bay Stock Photo Collection", likes:1100, emoji:"🌿" },
 
-                // MERLION PARK (5 posts)
-                { id: "merlion_001", location: "Merlion Park", time: "morning", hashtags: "#merlionphoto #iconicphoto #singaporephotography #landmarkphoto #morningphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/merlionphoto/", title: "Merlion Park Photography", source: "Instagram Hashtag", likes: 1300, emoji: "🦁" },
-                { id: "merlion_002", location: "Merlion Park", time: "morning", hashtags: "#merlionphoto #singaporephotography #iconicphoto #landmarkphoto", platform: "pexels", link: "https://www.pexels.com/search/merlion%20singapore/", title: "Merlion Free Stock Photo", source: "Pexels Free Stock", likes: 1100, emoji: "🌊" },
-                { id: "merlion_003", location: "Merlion Park", time: "morning", hashtags: "#merlionphoto #singaporephotography #iconicphoto #landmarkphoto #architecturephoto", platform: "unsplash", link: "https://unsplash.com/s/photos/merlion-singapore", title: "Merlion Park Unsplash Collection", source: "Unsplash Free Photos", likes: 1150, emoji: "🦈" },
-                { id: "merlion_004", location: "Merlion Park", time: "morning", hashtags: "#merlionphoto #singaporephotography #iconicphoto #landmarkphoto", platform: "500px", link: "https://500px.com/search?q=merlion+singapore", title: "Merlion 500px Photography Gallery", source: "500px Professional", likes: 1200, emoji: "🗿" },
-                { id: "merlion_005", location: "Merlion Park", time: "morning", hashtags: "#merlionphoto #singaporephotography #iconicphoto #landmarkphoto #architecturephoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=merlion%20singapore", title: "Merlion Stock Photo Collection", source: "iStock Photos", likes: 950, emoji: "🏛️" },
+            { id:"haji_001", location:"Haji Lane", time:"morning", hashtags:"#streetartphoto #muralsphoto #colorfulphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/haliphoto/", title:"Haji Lane Street Art Photo", likes:1100, emoji:"🎨" },
+            { id:"haji_002", location:"Haji Lane", time:"morning", hashtags:"#streetphotography #muralsphoto #colorfulphoto", platform:"pexels", link:"https://www.pexels.com/search/street%20art%20singapore/", title:"Singapore Street Art Photography", likes:950, emoji:"🖌️" },
+            { id:"haji_003", location:"Haji Lane", time:"morning", hashtags:"#streetartphoto #muralsphoto #architecturephoto", platform:"unsplash", link:"https://unsplash.com/s/photos/singapore-street-art", title:"Singapore Street Art Unsplash Photos", likes:1050, emoji:"🌈" },
+            { id:"haji_004", location:"Haji Lane", time:"morning", hashtags:"#streetphotography #muralsphoto #colorfulphoto", platform:"500px", link:"https://500px.com/search?q=haji+lane+singapore", title:"Haji Lane 500px Photography", likes:1000, emoji:"🖼️" },
+            { id:"haji_005", location:"Haji Lane", time:"morning", hashtags:"#streetartphoto #muralsphoto #colorfulphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=singapore%20street%20art", title:"Singapore Street Art Stock Photos", likes:880, emoji:"🎭" },
 
-                // HELIX BRIDGE (5 posts)
-                { id: "helix_001", location: "Helix Bridge", time: "night", hashtags: "#bridgephoto #architecturephoto #nightphoto #singaporephotography #lightphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/bridgephoto/", title: "Helix Bridge Night Photography", source: "Instagram Hashtag", likes: 1000, emoji: "🌉" },
-                { id: "helix_002", location: "Helix Bridge", time: "night", hashtags: "#architecturephoto #nightphoto #singaporephotography #bridgephoto", platform: "pexels", link: "https://www.pexels.com/search/singapore%20bridge/", title: "Singapore Bridge Free Photos", source: "Pexels Free Stock", likes: 880, emoji: "🔴" },
-                { id: "helix_003", location: "Helix Bridge", time: "night", hashtags: "#architecturephoto #nightphoto #singaporephotography #bridgephoto #lightphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/singapore-bridge", title: "Singapore Bridge Architecture Unsplash", source: "Unsplash Free Photos", likes: 920, emoji: "🧬" },
-                { id: "helix_004", location: "Helix Bridge", time: "night", hashtags: "#architecturephoto #nightphoto #singaporephotography #bridgephoto", platform: "500px", link: "https://500px.com/search?q=bridge+singapore", title: "Singapore Bridge 500px Photography", source: "500px Professional", likes: 950, emoji: "💫" },
-                { id: "helix_005", location: "Helix Bridge", time: "night", hashtags: "#architecturephoto #nightphoto #singaporephotography #bridgephoto #lightphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=singapore%20bridge", title: "Singapore Bridge Architecture Stock Photos", source: "iStock Photos", likes: 820, emoji: "🌆" },
+            { id:"chinatown_001", location:"Chinatown", time:"night", hashtags:"#nightphoto #chinatownphoto #culturalphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/chinatownphoto/", title:"Chinatown Night Photography", likes:1000, emoji:"🏮" },
+            { id:"chinatown_002", location:"Chinatown", time:"evening", hashtags:"#nightphoto #culturalphoto #architecturephoto", platform:"pexels", link:"https://www.pexels.com/search/chinatown%20singapore/", title:"Singapore Chinatown Photography", likes:850, emoji:"🥟" },
+            { id:"chinatown_003", location:"Chinatown", time:"night", hashtags:"#nightphoto #culturalphoto #architecturephoto", platform:"unsplash", link:"https://unsplash.com/s/photos/singapore-chinatown", title:"Singapore Chinatown Unsplash Photos", likes:920, emoji:"🏯" },
+            { id:"chinatown_004", location:"Chinatown", time:"night", hashtags:"#nightphoto #culturalphoto #templeograph", platform:"500px", link:"https://500px.com/search?q=chinatown+singapore", title:"Chinatown 500px Gallery", likes:880, emoji:"🧧" },
+            { id:"chinatown_005", location:"Chinatown", time:"evening", hashtags:"#nightphoto #culturalphoto #architecturephoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=singapore%20chinatown", title:"Singapore Chinatown Stock Photos", likes:790, emoji:"🪭" },
 
-                // KOON SENG ROAD (5 posts)
-                { id: "koonseng_001", location: "Koon Seng Road", time: "morning", hashtags: "#architecturephoto #shophousequephoto #singaporephotography #colorfulphoto #heritagephoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/singaporearchitecture/", title: "Koon Seng Road Photography", source: "Instagram Hashtag", likes: 1050, emoji: "🏘️" },
-                { id: "koonseng_002", location: "Koon Seng Road", time: "morning", hashtags: "#architecturephoto #colorfulphoto #singaporephotography #heritagephoto", platform: "pexels", link: "https://www.pexels.com/search/singapore%20architecture/", title: "Singapore Architecture Free Photos", source: "Pexels Free Stock", likes: 900, emoji: "🏚️" },
-                { id: "koonseng_003", location: "Koon Seng Road", time: "morning", hashtags: "#architecturephoto #colorfulphoto #singaporephotography #heritagephoto #buildingphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/singapore-architecture", title: "Singapore Architecture Unsplash Photos", source: "Unsplash Free Photos", likes: 980, emoji: "🎡" },
-                { id: "koonseng_004", location: "Koon Seng Road", time: "morning", hashtags: "#architecturephoto #colorfulphoto #singaporephotography #heritagephoto", platform: "500px", link: "https://500px.com/search?q=singapore+architecture", title: "Singapore Architecture 500px Gallery", source: "500px Professional", likes: 1020, emoji: "🏙️" },
-                { id: "koonseng_005", location: "Koon Seng Road", time: "morning", hashtags: "#architecturephoto #colorfulphoto #singaporephotography #heritagephoto #buildingphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=singapore%20heritage%20architecture", title: "Singapore Heritage Architecture Stock Photos", source: "iStock Photos", likes: 850, emoji: "🎀" },
+            { id:"merlion_001", location:"Merlion Park", time:"morning", hashtags:"#merlionphoto #iconicphoto #landmarkphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/merlionphoto/", title:"Merlion Park Photography", likes:1300, emoji:"🦁" },
+            { id:"merlion_002", location:"Merlion Park", time:"morning", hashtags:"#merlionphoto #iconicphoto #landmarkphoto", platform:"pexels", link:"https://www.pexels.com/search/merlion%20singapore/", title:"Merlion Free Stock Photo", likes:1100, emoji:"🌊" },
+            { id:"merlion_003", location:"Merlion Park", time:"morning", hashtags:"#merlionphoto #iconicphoto #architecturephoto", platform:"unsplash", link:"https://unsplash.com/s/photos/merlion-singapore", title:"Merlion Park Unsplash Collection", likes:1150, emoji:"🦈" },
+            { id:"merlion_004", location:"Merlion Park", time:"morning", hashtags:"#merlionphoto #iconicphoto #landmarkphoto", platform:"500px", link:"https://500px.com/search?q=merlion+singapore", title:"Merlion 500px Photography Gallery", likes:1200, emoji:"🗿" },
+            { id:"merlion_005", location:"Merlion Park", time:"morning", hashtags:"#merlionphoto #iconicphoto #architecturephoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=merlion%20singapore", title:"Merlion Stock Photo Collection", likes:950, emoji:"🏛️" },
 
-                // SENTOSA ISLAND (5 posts)
-                { id: "sentosa_001", location: "Sentosa Island", time: "sunset", hashtags: "#beachphoto #islandphoto #singaporephotography #sunsetphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/sentosaphoto/", title: "Sentosa Island Sunset Photography", source: "Instagram Hashtag", likes: 1180, emoji: "🏝️" },
-                { id: "sentosa_002", location: "Sentosa Island", time: "sunset", hashtags: "#beachphoto #sunsetphoto #singaporephotography", platform: "pexels", link: "https://www.pexels.com/search/sentosa%20island/", title: "Sentosa Island Beach Photos", source: "Pexels Free Stock", likes: 920, emoji: "🏖️" },
-                { id: "sentosa_003", location: "Sentosa Island", time: "sunset", hashtags: "#beachphoto #sunsetphoto #singaporephotography #coastalphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/sentosa-singapore", title: "Sentosa Island Unsplash Photos", source: "Unsplash Free Photos", likes: 1050, emoji: "🌊" },
-                { id: "sentosa_004", location: "Sentosa Island", time: "sunset", hashtags: "#beachphoto #sunsetphoto #singaporephotography", platform: "500px", link: "https://500px.com/search?q=sentosa+singapore", title: "Sentosa 500px Gallery", source: "500px Professional", likes: 1100, emoji: "🌴" },
-                { id: "sentosa_005", location: "Sentosa Island", time: "sunset", hashtags: "#beachphoto #sunsetphoto #singaporephotography #landscapephoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=sentosa%20island%20singapore", title: "Sentosa Island Stock Photos", source: "iStock Photos", likes: 880, emoji: "⛱️" },
+            { id:"helix_001", location:"Helix Bridge", time:"night", hashtags:"#bridgephoto #architecturephoto #lightphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/bridgephoto/", title:"Helix Bridge Night Photography", likes:1000, emoji:"🌉" },
+            { id:"helix_002", location:"Helix Bridge", time:"night", hashtags:"#architecturephoto #nightphoto #bridgephoto", platform:"pexels", link:"https://www.pexels.com/search/singapore%20bridge/", title:"Singapore Bridge Free Photos", likes:880, emoji:"🔴" },
+            { id:"helix_003", location:"Helix Bridge", time:"night", hashtags:"#architecturephoto #nightphoto #lightphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/singapore-bridge", title:"Singapore Bridge Architecture Unsplash", likes:920, emoji:"🧬" },
+            { id:"helix_004", location:"Helix Bridge", time:"night", hashtags:"#architecturephoto #nightphoto #bridgephoto", platform:"500px", link:"https://500px.com/search?q=bridge+singapore", title:"Singapore Bridge 500px Photography", likes:950, emoji:"💫" },
+            { id:"helix_005", location:"Helix Bridge", time:"night", hashtags:"#architecturephoto #nightphoto #lightphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=singapore%20bridge", title:"Singapore Bridge Architecture Stock Photos", likes:820, emoji:"🌆" },
 
-                // SINGAPORE FLYER (5 posts)
-                { id: "flyer_001", location: "Singapore Flyer", time: "day", hashtags: "#ferriswheelphoto #singaporephotography #skyviewphoto #observationphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/singaporeflyerphoto/", title: "Singapore Flyer Photography", source: "Instagram Hashtag", likes: 1220, emoji: "🎡" },
-                { id: "flyer_002", location: "Singapore Flyer", time: "day", hashtags: "#ferriswheelphoto #singaporephotography #viewphoto", platform: "pexels", link: "https://www.pexels.com/search/singapore%20flyer/", title: "Singapore Flyer Free Photos", source: "Pexels Free Stock", likes: 1050, emoji: "👁️" },
-                { id: "flyer_003", location: "Singapore Flyer", time: "day", hashtags: "#ferriswheelphoto #singaporephotography #skyviewphoto #observationphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/singapore-flyer", title: "Singapore Flyer Unsplash Photos", source: "Unsplash Free Photos", likes: 1100, emoji: "☁️" },
-                { id: "flyer_004", location: "Singapore Flyer", time: "day", hashtags: "#ferriswheelphoto #singaporephotography #viewphoto", platform: "500px", link: "https://500px.com/search?q=singapore+flyer", title: "Singapore Flyer 500px Gallery", source: "500px Professional", likes: 1150, emoji: "🌤️" },
-                { id: "flyer_005", location: "Singapore Flyer", time: "day", hashtags: "#ferriswheelphoto #singaporephotography #skyviewphoto #observationphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=singapore%20flyer", title: "Singapore Flyer Stock Photos", source: "iStock Photos", likes: 950, emoji: "🔭" },
+            { id:"koonseng_001", location:"Koon Seng Road", time:"morning", hashtags:"#architecturephoto #colorfulphoto #heritagephoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/singaporearchitecture/", title:"Koon Seng Road Photography", likes:1050, emoji:"🏘️" },
+            { id:"koonseng_002", location:"Koon Seng Road", time:"morning", hashtags:"#architecturephoto #colorfulphoto #heritagephoto", platform:"pexels", link:"https://www.pexels.com/search/singapore%20architecture/", title:"Singapore Architecture Free Photos", likes:900, emoji:"🏚️" },
+            { id:"koonseng_003", location:"Koon Seng Road", time:"morning", hashtags:"#architecturephoto #colorfulphoto #buildingphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/singapore-architecture", title:"Singapore Architecture Unsplash Photos", likes:980, emoji:"🎡" },
+            { id:"koonseng_004", location:"Koon Seng Road", time:"morning", hashtags:"#architecturephoto #colorfulphoto #heritagephoto", platform:"500px", link:"https://500px.com/search?q=singapore+architecture", title:"Singapore Architecture 500px Gallery", likes:1020, emoji:"🏙️" },
+            { id:"koonseng_005", location:"Koon Seng Road", time:"morning", hashtags:"#architecturephoto #colorfulphoto #buildingphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=singapore%20heritage%20architecture", title:"Singapore Heritage Architecture Stock Photos", likes:850, emoji:"🎀" },
 
-                // ARAB STREET (5 posts)
-                { id: "arab_001", location: "Arab Street", time: "morning", hashtags: "#streetphotography #culturalphoto #singaporephotography #heritagephoto #colorfulphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/arabstreetphoto/", title: "Arab Street Photography", source: "Instagram Hashtag", likes: 1080, emoji: "🕌" },
-                { id: "arab_002", location: "Arab Street", time: "morning", hashtags: "#streetphotography #culturalphoto #singaporephotography #colorfulphoto", platform: "pexels", link: "https://www.pexels.com/search/arab%20street%20singapore/", title: "Arab Street Singapore Photos", source: "Pexels Free Stock", likes: 920, emoji: "🧿" },
-                { id: "arab_003", location: "Arab Street", time: "morning", hashtags: "#streetphotography #culturalphoto #singaporephotography #heritagephoto #colorfulphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/arab-street-singapore", title: "Arab Street Unsplash Photos", source: "Unsplash Free Photos", likes: 1000, emoji: "🏮" },
-                { id: "arab_004", location: "Arab Street", time: "morning", hashtags: "#streetphotography #culturalphoto #singaporephotography #colorfulphoto", platform: "500px", link: "https://500px.com/search?q=arab+street+singapore", title: "Arab Street 500px Gallery", source: "500px Professional", likes: 1050, emoji: "🎨" },
-                { id: "arab_005", location: "Arab Street", time: "morning", hashtags: "#streetphotography #culturalphoto #singaporephotography #heritagephoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=arab%20street%20singapore", title: "Arab Street Stock Photos", source: "iStock Photos", likes: 880, emoji: "🧵" },
+            { id:"sentosa_001", location:"Sentosa Island", time:"sunset", hashtags:"#beachphoto #islandphoto #sunsetphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/sentosaphoto/", title:"Sentosa Island Sunset Photography", likes:1180, emoji:"🏝️" },
+            { id:"sentosa_002", location:"Sentosa Island", time:"sunset", hashtags:"#beachphoto #sunsetphoto #coastalphoto", platform:"pexels", link:"https://www.pexels.com/search/sentosa%20island/", title:"Sentosa Island Beach Photos", likes:920, emoji:"🏖️" },
+            { id:"sentosa_003", location:"Sentosa Island", time:"sunset", hashtags:"#beachphoto #sunsetphoto #coastalphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/sentosa-singapore", title:"Sentosa Island Unsplash Photos", likes:1050, emoji:"🌊" },
+            { id:"sentosa_004", location:"Sentosa Island", time:"sunset", hashtags:"#beachphoto #sunsetphoto #landscapephoto", platform:"500px", link:"https://500px.com/search?q=sentosa+singapore", title:"Sentosa 500px Gallery", likes:1100, emoji:"🌴" },
+            { id:"sentosa_005", location:"Sentosa Island", time:"sunset", hashtags:"#beachphoto #sunsetphoto #landscapephoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=sentosa%20island%20singapore", title:"Sentosa Island Stock Photos", likes:880, emoji:"⛱️" },
 
-                // CLARKE QUAY (5 posts)
-                { id: "clarkeq_001", location: "Clarke Quay", time: "evening", hashtags: "#quayephoto #riversidephoto #singaporephotography #nightlifepioto #architecturephoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/clarkequayPhoto/", title: "Clarke Quay Evening Photography", source: "Instagram Hashtag", likes: 1120, emoji: "🌆" },
-                { id: "clarkeq_002", location: "Clarke Quay", time: "evening", hashtags: "#quayephoto #riversidephoto #singaporephotography #architecturephoto", platform: "pexels", link: "https://www.pexels.com/search/clarke%20quay/", title: "Clarke Quay Singapore Photos", source: "Pexels Free Stock", likes: 950, emoji: "🛶" },
-                { id: "clarkeq_003", location: "Clarke Quay", time: "evening", hashtags: "#quayephoto #riversidephoto #singaporephotography #nightlifepioto #architecturephoto", platform: "unsplash", link: "https://unsplash.com/s/photos/clarke-quay-singapore", title: "Clarke Quay Unsplash Photos", source: "Unsplash Free Photos", likes: 1050, emoji: "🎆" },
-                { id: "clarkeq_004", location: "Clarke Quay", time: "evening", hashtags: "#quayephoto #riversidephoto #singaporephotography #architecturephoto", platform: "500px", link: "https://500px.com/search?q=clarke+quay+singapore", title: "Clarke Quay 500px Gallery", source: "500px Professional", likes: 1100, emoji: "🌃" },
-                { id: "clarkeq_005", location: "Clarke Quay", time: "evening", hashtags: "#quayephoto #riversidephoto #singaporephotography #nightlifepioto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=clarke%20quay%20singapore", title: "Clarke Quay Stock Photos", source: "iStock Photos", likes: 900, emoji: "🚤" },
+            { id:"flyer_001", location:"Singapore Flyer", time:"day", hashtags:"#ferriswheelphoto #skyviewphoto #observationphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/singaporeflyerphoto/", title:"Singapore Flyer Photography", likes:1220, emoji:"🎡" },
+            { id:"flyer_002", location:"Singapore Flyer", time:"day", hashtags:"#ferriswheelphoto #viewphoto", platform:"pexels", link:"https://www.pexels.com/search/singapore%20flyer/", title:"Singapore Flyer Free Photos", likes:1050, emoji:"👁️" },
+            { id:"flyer_003", location:"Singapore Flyer", time:"day", hashtags:"#ferriswheelphoto #skyviewphoto #observationphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/singapore-flyer", title:"Singapore Flyer Unsplash Photos", likes:1100, emoji:"☁️" },
+            { id:"flyer_004", location:"Singapore Flyer", time:"day", hashtags:"#ferriswheelphoto #viewphoto", platform:"500px", link:"https://500px.com/search?q=singapore+flyer", title:"Singapore Flyer 500px Gallery", likes:1150, emoji:"🌤️" },
+            { id:"flyer_005", location:"Singapore Flyer", time:"day", hashtags:"#ferriswheelphoto #skyviewphoto #observationphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=singapore%20flyer", title:"Singapore Flyer Stock Photos", likes:950, emoji:"🔭" },
 
-                // MARINA BARRAGE (5 posts)
-                { id: "marbar_001", location: "Marina Barrage", time: "sunset", hashtags: "#damphoto #landscapephoto #singaporephotography #sunsetphoto #waterphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/marinabaragephoto/", title: "Marina Barrage Sunset Photography", source: "Instagram Hashtag", likes: 980, emoji: "🌇" },
-                { id: "marbar_002", location: "Marina Barrage", time: "sunset", hashtags: "#damphoto #landscapephoto #singaporephotography #sunsetphoto", platform: "pexels", link: "https://www.pexels.com/search/marina%20barrage/", title: "Marina Barrage Singapore Photos", source: "Pexels Free Stock", likes: 880, emoji: "💧" },
-                { id: "marbar_003", location: "Marina Barrage", time: "sunset", hashtags: "#damphoto #landscapephoto #singaporephotography #sunsetphoto #waterphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/marina-barrage-singapore", title: "Marina Barrage Unsplash Photos", source: "Unsplash Free Photos", likes: 920, emoji: "🌉" },
-                { id: "marbar_004", location: "Marina Barrage", time: "sunset", hashtags: "#damphoto #landscapephoto #singaporephotography #sunsetphoto", platform: "500px", link: "https://500px.com/search?q=marina+barrage+singapore", title: "Marina Barrage 500px Gallery", source: "500px Professional", likes: 950, emoji: "🪁" },
-                { id: "marbar_005", location: "Marina Barrage", time: "sunset", hashtags: "#damphoto #landscapephoto #singaporephotography #sunsetphoto #waterphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=marina%20barrage%20singapore", title: "Marina Barrage Stock Photos", source: "iStock Photos", likes: 820, emoji: "🌅" },
+            { id:"arab_001", location:"Arab Street", time:"morning", hashtags:"#streetphotography #culturalphoto #heritagephoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/arabstreetphoto/", title:"Arab Street Photography", likes:1080, emoji:"🕌" },
+            { id:"arab_002", location:"Arab Street", time:"morning", hashtags:"#streetphotography #culturalphoto #colorfulphoto", platform:"pexels", link:"https://www.pexels.com/search/arab%20street%20singapore/", title:"Arab Street Singapore Photos", likes:920, emoji:"🧿" },
+            { id:"arab_003", location:"Arab Street", time:"morning", hashtags:"#streetphotography #culturalphoto #heritagephoto", platform:"unsplash", link:"https://unsplash.com/s/photos/arab-street-singapore", title:"Arab Street Unsplash Photos", likes:1000, emoji:"🏮" },
+            { id:"arab_004", location:"Arab Street", time:"morning", hashtags:"#streetphotography #culturalphoto #colorfulphoto", platform:"500px", link:"https://500px.com/search?q=arab+street+singapore", title:"Arab Street 500px Gallery", likes:1050, emoji:"🎨" },
+            { id:"arab_005", location:"Arab Street", time:"morning", hashtags:"#streetphotography #culturalphoto #heritagephoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=arab%20street%20singapore", title:"Arab Street Stock Photos", likes:880, emoji:"🧵" },
 
-                // SINGAPORE BOTANIC GARDENS (5 posts)
-                { id: "sbot_001", location: "Singapore Botanic Gardens", time: "morning", hashtags: "#gardensphoto #landscapephoto #singaporephotography #naturephoto #floralphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/botanicgardenssphoto/", title: "Singapore Botanic Gardens Photography", source: "Instagram Hashtag", likes: 1150, emoji: "🌷" },
-                { id: "sbot_002", location: "Singapore Botanic Gardens", time: "morning", hashtags: "#gardensphoto #landscapephoto #singaporephotography #naturephoto", platform: "pexels", link: "https://www.pexels.com/search/botanic%20gardens%20singapore/", title: "Singapore Botanic Gardens Photos", source: "Pexels Free Stock", likes: 1000, emoji: "🌻" },
-                { id: "sbot_003", location: "Singapore Botanic Gardens", time: "morning", hashtags: "#gardensphoto #landscapephoto #singaporephotography #naturephoto #floralphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/botanic-gardens-singapore", title: "Singapore Botanic Gardens Unsplash", source: "Unsplash Free Photos", likes: 1080, emoji: "🌹" },
-                { id: "sbot_004", location: "Singapore Botanic Gardens", time: "morning", hashtags: "#gardensphoto #landscapephoto #singaporephotography #naturephoto", platform: "500px", link: "https://500px.com/search?q=singapore+botanic+gardens", title: "Singapore Botanic Gardens 500px", source: "500px Professional", likes: 1120, emoji: "🌼" },
-                { id: "sbot_005", location: "Singapore Botanic Gardens", time: "morning", hashtags: "#gardensphoto #landscapephoto #singaporephotography #naturephoto #floralphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=singapore%20botanic%20gardens", title: "Singapore Botanic Gardens Stock Photos", source: "iStock Photos", likes: 950, emoji: "🍃" },
+            { id:"clarkeq_001", location:"Clarke Quay", time:"evening", hashtags:"#riversidephoto #nightlifephoto #architecturephoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/clarkequayPhoto/", title:"Clarke Quay Evening Photography", likes:1120, emoji:"🌆" },
+            { id:"clarkeq_002", location:"Clarke Quay", time:"evening", hashtags:"#riversidephoto #architecturephoto", platform:"pexels", link:"https://www.pexels.com/search/clarke%20quay/", title:"Clarke Quay Singapore Photos", likes:950, emoji:"🛶" },
+            { id:"clarkeq_003", location:"Clarke Quay", time:"evening", hashtags:"#riversidephoto #nightlifephoto #architecturephoto", platform:"unsplash", link:"https://unsplash.com/s/photos/clarke-quay-singapore", title:"Clarke Quay Unsplash Photos", likes:1050, emoji:"🎆" },
+            { id:"clarkeq_004", location:"Clarke Quay", time:"evening", hashtags:"#riversidephoto #architecturephoto", platform:"500px", link:"https://500px.com/search?q=clarke+quay+singapore", title:"Clarke Quay 500px Gallery", likes:1100, emoji:"🌃" },
+            { id:"clarkeq_005", location:"Clarke Quay", time:"evening", hashtags:"#riversidephoto #nightlifephoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=clarke%20quay%20singapore", title:"Clarke Quay Stock Photos", likes:900, emoji:"🚤" },
 
-                // UNIVERSAL STUDIOS SINGAPORE (5 posts)
-                { id: "uss_001", location: "Universal Studios Singapore", time: "day", hashtags: "#themeparkphoto #entertanmentphoto #singaporephotography #funphoto #ridephoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/universalstudiossphoto/", title: "Universal Studios Singapore Photo", source: "Instagram Hashtag", likes: 1280, emoji: "🎢" },
-                { id: "uss_002", location: "Universal Studios Singapore", time: "day", hashtags: "#themeparkphoto #entertainmentphoto #singaporephotography #funphoto", platform: "pexels", link: "https://www.pexels.com/search/universal%20studios%20singapore/", title: "Universal Studios Singapore Photos", source: "Pexels Free Stock", likes: 1080, emoji: "🎠" },
-                { id: "uss_003", location: "Universal Studios Singapore", time: "day", hashtags: "#themeparkphoto #entertainmentphoto #singaporephotography #funphoto #ridephoto", platform: "unsplash", link: "https://unsplash.com/s/photos/universal-studios-singapore", title: "Universal Studios Singapore Unsplash", source: "Unsplash Free Photos", likes: 1120, emoji: "🎪" },
-                { id: "uss_004", location: "Universal Studios Singapore", time: "day", hashtags: "#themeparkphoto #entertainmentphoto #singaporephotography #funphoto", platform: "500px", link: "https://500px.com/search?q=universal+studios+singapore", title: "Universal Studios Singapore 500px", source: "500px Professional", likes: 1150, emoji: "🎟️" },
-                { id: "uss_005", location: "Universal Studios Singapore", time: "day", hashtags: "#themeparkphoto #entertainmentphoto #singaporephotography #funphoto #ridephoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=universal%20studios%20singapore", title: "Universal Studios Singapore Stock", source: "iStock Photos", likes: 1000, emoji: "🎭" },
+            { id:"marbar_001", location:"Marina Barrage", time:"sunset", hashtags:"#damphoto #landscapephoto #sunsetphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/marinabaragephoto/", title:"Marina Barrage Sunset Photography", likes:980, emoji:"🌇" },
+            { id:"marbar_002", location:"Marina Barrage", time:"sunset", hashtags:"#damphoto #landscapephoto #sunsetphoto", platform:"pexels", link:"https://www.pexels.com/search/marina%20barrage/", title:"Marina Barrage Singapore Photos", likes:880, emoji:"💧" },
+            { id:"marbar_003", location:"Marina Barrage", time:"sunset", hashtags:"#damphoto #landscapephoto #waterphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/marina-barrage-singapore", title:"Marina Barrage Unsplash Photos", likes:920, emoji:"🌉" },
+            { id:"marbar_004", location:"Marina Barrage", time:"sunset", hashtags:"#damphoto #landscapephoto #sunsetphoto", platform:"500px", link:"https://500px.com/search?q=marina+barrage+singapore", title:"Marina Barrage 500px Gallery", likes:950, emoji:"🪁" },
+            { id:"marbar_005", location:"Marina Barrage", time:"sunset", hashtags:"#damphoto #landscapephoto #waterphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=marina%20barrage%20singapore", title:"Marina Barrage Stock Photos", likes:820, emoji:"🌅" },
 
-                // ESPLANADE (5 posts)
-                { id: "espl_001", location: "Esplanade", time: "evening", hashtags: "#architecturephoto #shellphoto #singaporephotography #theatrephoto #nightphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/esplanadesingapore/", title: "Esplanade Photography", source: "Instagram Hashtag", likes: 1100, emoji: "🎭" },
-                { id: "espl_002", location: "Esplanade", time: "evening", hashtags: "#architecturephoto #shellphoto #singaporephotography #theatrephoto", platform: "pexels", link: "https://www.pexels.com/search/esplanade%20singapore/", title: "Esplanade Singapore Photos", source: "Pexels Free Stock", likes: 950, emoji: "🦔" },
-                { id: "espl_003", location: "Esplanade", time: "evening", hashtags: "#architecturephoto #shellphoto #singaporephotography #theatrephoto #nightphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/esplanade-singapore", title: "Esplanade Unsplash Photos", source: "Unsplash Free Photos", likes: 1020, emoji: "🎼" },
-                { id: "espl_004", location: "Esplanade", time: "evening", hashtags: "#architecturephoto #shellphoto #singaporephotography #theatrephoto", platform: "500px", link: "https://500px.com/search?q=esplanade+singapore", title: "Esplanade 500px Gallery", source: "500px Professional", likes: 1050, emoji: "🎻" },
-                { id: "espl_005", location: "Esplanade", time: "evening", hashtags: "#architecturephoto #shellphoto #singaporephotography #theatrephoto #nightphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=esplanade%20singapore", title: "Esplanade Stock Photos", source: "iStock Photos", likes: 900, emoji: "🎹" },
+            { id:"sbot_001", location:"Singapore Botanic Gardens", time:"morning", hashtags:"#gardensphoto #naturephoto #floralphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/botanicgardenssphoto/", title:"Singapore Botanic Gardens Photography", likes:1150, emoji:"🌷" },
+            { id:"sbot_002", location:"Singapore Botanic Gardens", time:"morning", hashtags:"#gardensphoto #naturephoto", platform:"pexels", link:"https://www.pexels.com/search/botanic%20gardens%20singapore/", title:"Singapore Botanic Gardens Photos", likes:1000, emoji:"🌻" },
+            { id:"sbot_003", location:"Singapore Botanic Gardens", time:"morning", hashtags:"#gardensphoto #naturephoto #floralphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/botanic-gardens-singapore", title:"Singapore Botanic Gardens Unsplash", likes:1080, emoji:"🌹" },
+            { id:"sbot_004", location:"Singapore Botanic Gardens", time:"morning", hashtags:"#gardensphoto #naturephoto", platform:"500px", link:"https://500px.com/search?q=singapore+botanic+gardens", title:"Singapore Botanic Gardens 500px", likes:1120, emoji:"🌼" },
+            { id:"sbot_005", location:"Singapore Botanic Gardens", time:"morning", hashtags:"#gardensphoto #naturephoto #floralphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=singapore%20botanic%20gardens", title:"Singapore Botanic Gardens Stock Photos", likes:950, emoji:"🍃" },
 
-                // MACRITCHIE RESERVOIR (5 posts)
-                { id: "macr_001", location: "MacRitchie Reservoir", time: "morning", hashtags: "#naturephoto #trekhingphoto #singaporephotography #forestphoto #waterphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/macritchiereservoir/", title: "MacRitchie Reservoir Photography", source: "Instagram Hashtag", likes: 980, emoji: "🌲" },
-                { id: "macr_002", location: "MacRitchie Reservoir", time: "morning", hashtags: "#naturephoto #trekingphoto #singaporephotography #forestphoto", platform: "pexels", link: "https://www.pexels.com/search/macritchie%20reservoir/", title: "MacRitchie Reservoir Photos", source: "Pexels Free Stock", likes: 850, emoji: "🌿" },
-                { id: "macr_003", location: "MacRitchie Reservoir", time: "morning", hashtags: "#naturephoto #trekingphoto #singaporephotography #forestphoto #waterphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/macritchie-reservoir-singapore", title: "MacRitchie Reservoir Unsplash", source: "Unsplash Free Photos", likes: 920, emoji: "🦜" },
-                { id: "macr_004", location: "MacRitchie Reservoir", time: "morning", hashtags: "#naturephoto #trekingphoto #singaporephotography #forestphoto", platform: "500px", link: "https://500px.com/search?q=macritchie+reservoir", title: "MacRitchie Reservoir 500px", source: "500px Professional", likes: 950, emoji: "🚣" },
-                { id: "macr_005", location: "MacRitchie Reservoir", time: "morning", hashtags: "#naturephoto #trekingphoto #singaporephotography #forestphoto #waterphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=macritchie%20reservoir%20singapore", title: "MacRitchie Reservoir Stock Photos", source: "iStock Photos", likes: 820, emoji: "🐒" },
+            { id:"uss_001", location:"Universal Studios Singapore", time:"day", hashtags:"#themeparkphoto #funphoto #ridephoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/universalstudiossphoto/", title:"Universal Studios Singapore Photo", likes:1280, emoji:"🎢" },
+            { id:"uss_002", location:"Universal Studios Singapore", time:"day", hashtags:"#themeparkphoto #funphoto", platform:"pexels", link:"https://www.pexels.com/search/universal%20studios%20singapore/", title:"Universal Studios Singapore Photos", likes:1080, emoji:"🎠" },
+            { id:"uss_003", location:"Universal Studios Singapore", time:"day", hashtags:"#themeparkphoto #funphoto #ridephoto", platform:"unsplash", link:"https://unsplash.com/s/photos/universal-studios-singapore", title:"Universal Studios Singapore Unsplash", likes:1120, emoji:"🎪" },
+            { id:"uss_004", location:"Universal Studios Singapore", time:"day", hashtags:"#themeparkphoto #funphoto", platform:"500px", link:"https://500px.com/search?q=universal+studios+singapore", title:"Universal Studios Singapore 500px", likes:1150, emoji:"🎟️" },
+            { id:"uss_005", location:"Universal Studios Singapore", time:"day", hashtags:"#themeparkphoto #funphoto #ridephoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=universal%20studios%20singapore", title:"Universal Studios Singapore Stock", likes:1000, emoji:"🎭" },
 
-                // EAST COAST PARK (5 posts)
-                { id: "ecpark_001", location: "East Coast Park", time: "sunset", hashtags: "#beachphoto #parkphoto #singaporephotography #coastalphoto #sunsetphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/eastcoastparksingapore/", title: "East Coast Park Photography", source: "Instagram Hashtag", likes: 1050, emoji: "🚴" },
-                { id: "ecpark_002", location: "East Coast Park", time: "sunset", hashtags: "#beachphoto #parkphoto #singaporephotography #coastalphoto", platform: "pexels", link: "https://www.pexels.com/search/east%20coast%20park/", title: "East Coast Park Photos", source: "Pexels Free Stock", likes: 920, emoji: "🏄" },
-                { id: "ecpark_003", location: "East Coast Park", time: "sunset", hashtags: "#beachphoto #parkphoto #singaporephotography #coastalphoto #sunsetphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/east-coast-park-singapore", title: "East Coast Park Unsplash", source: "Unsplash Free Photos", likes: 1000, emoji: "🌊" },
-                { id: "ecpark_004", location: "East Coast Park", time: "sunset", hashtags: "#beachphoto #parkphoto #singaporephotography #coastalphoto", platform: "500px", link: "https://500px.com/search?q=east+coast+park", title: "East Coast Park 500px", source: "500px Professional", likes: 1050, emoji: "🥥" },
-                { id: "ecpark_005", location: "East Coast Park", time: "sunset", hashtags: "#beachphoto #parkphoto #singaporephotography #coastalphoto #sunsetphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=east%20coast%20park%20singapore", title: "East Coast Park Stock Photos", source: "iStock Photos", likes: 880, emoji: "🏖️" },
+            { id:"espl_001", location:"Esplanade", time:"evening", hashtags:"#architecturephoto #shellphoto #theatrephoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/esplanadesingapore/", title:"Esplanade Photography", likes:1100, emoji:"🎭" },
+            { id:"espl_002", location:"Esplanade", time:"evening", hashtags:"#architecturephoto #shellphoto #theatrephoto", platform:"pexels", link:"https://www.pexels.com/search/esplanade%20singapore/", title:"Esplanade Singapore Photos", likes:950, emoji:"🦔" },
+            { id:"espl_003", location:"Esplanade", time:"evening", hashtags:"#architecturephoto #shellphoto #nightphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/esplanade-singapore", title:"Esplanade Unsplash Photos", likes:1020, emoji:"🎼" },
+            { id:"espl_004", location:"Esplanade", time:"evening", hashtags:"#architecturephoto #shellphoto #theatrephoto", platform:"500px", link:"https://500px.com/search?q=esplanade+singapore", title:"Esplanade 500px Gallery", likes:1050, emoji:"🎻" },
+            { id:"espl_005", location:"Esplanade", time:"evening", hashtags:"#architecturephoto #shellphoto #nightphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=esplanade%20singapore", title:"Esplanade Stock Photos", likes:900, emoji:"🎹" },
 
-                // CHANGI AIRPORT (5 posts)
-                { id: "changi_001", location: "Changi Airport", time: "day", hashtags: "#airportphoto #architecturephoto #singaporephotography #modernphoto #terminalphoto", platform: "instagram", link: "https://www.instagram.com/explore/tags/changiairport/", title: "Changi Airport Photography", source: "Instagram Hashtag", likes: 1140, emoji: "✈️" },
-                { id: "changi_002", location: "Changi Airport", time: "day", hashtags: "#airportphoto #architecturephoto #singaporephotography #modernphoto", platform: "pexels", link: "https://www.pexels.com/search/changi%20airport/", title: "Changi Airport Photos", source: "Pexels Free Stock", likes: 1000, emoji: "🛫" },
-                { id: "changi_003", location: "Changi Airport", time: "day", hashtags: "#airportphoto #architecturephoto #singaporephotography #modernphoto #terminalphoto", platform: "unsplash", link: "https://unsplash.com/s/photos/changi-airport-singapore", title: "Changi Airport Unsplash", source: "Unsplash Free Photos", likes: 1080, emoji: "🌫️" },
-                { id: "changi_004", location: "Changi Airport", time: "day", hashtags: "#airportphoto #architecturephoto #singaporephotography #modernphoto", platform: "500px", link: "https://500px.com/search?q=changi+airport", title: "Changi Airport 500px", source: "500px Professional", likes: 1120, emoji: "🛬" },
-                { id: "changi_005", location: "Changi Airport", time: "day", hashtags: "#airportphoto #architecturephoto #singaporephotography #modernphoto #terminalphoto", platform: "istockphoto", link: "https://www.istockphoto.com/search/2/image?phrase=changi%20airport%20singapore", title: "Changi Airport Stock Photos", source: "iStock Photos", likes: 950, emoji: "🧳" }
-            ],
+            { id:"macr_001", location:"MacRitchie Reservoir", time:"morning", hashtags:"#naturephoto #forestphoto #waterphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/macritchiereservoir/", title:"MacRitchie Reservoir Photography", likes:980, emoji:"🌲" },
+            { id:"macr_002", location:"MacRitchie Reservoir", time:"morning", hashtags:"#naturephoto #forestphoto", platform:"pexels", link:"https://www.pexels.com/search/macritchie%20reservoir/", title:"MacRitchie Reservoir Photos", likes:850, emoji:"🌿" },
+            { id:"macr_003", location:"MacRitchie Reservoir", time:"morning", hashtags:"#naturephoto #forestphoto #waterphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/macritchie-reservoir-singapore", title:"MacRitchie Reservoir Unsplash", likes:920, emoji:"🦜" },
+            { id:"macr_004", location:"MacRitchie Reservoir", time:"morning", hashtags:"#naturephoto #forestphoto", platform:"500px", link:"https://500px.com/search?q=macritchie+reservoir", title:"MacRitchie Reservoir 500px", likes:950, emoji:"🚣" },
+            { id:"macr_005", location:"MacRitchie Reservoir", time:"morning", hashtags:"#naturephoto #forestphoto #waterphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=macritchie%20reservoir%20singapore", title:"MacRitchie Reservoir Stock Photos", likes:820, emoji:"🐒" },
 
-            analyzePhotos: function() {
-                const analysis = {};
-                this.photosDatabase.forEach(photo => {
-                    if (!analysis[photo.location]) {
-                        analysis[photo.location] = {
-                            location: photo.location, totalPhotos: 0, totalLikes: 0, averageLikes: 0,
-                            byTime: {}, byPlatform: {}, bestTime: "unknown", bestTimeScore: 0,
-                            popularityScore: 0, publicPosts: []
-                        };
-                    }
-                    analysis[photo.location].totalPhotos += 1;
-                    analysis[photo.location].totalLikes += photo.likes;
-                    analysis[photo.location].publicPosts.push(photo);
-                    if (!analysis[photo.location].byPlatform[photo.platform]) analysis[photo.location].byPlatform[photo.platform] = [];
-                    analysis[photo.location].byPlatform[photo.platform].push(photo);
-                    if (!analysis[photo.location].byTime[photo.time]) analysis[photo.location].byTime[photo.time] = { count: 0, totalLikes: 0, averageLikes: 0, posts: [] };
-                    analysis[photo.location].byTime[photo.time].count += 1;
-                    analysis[photo.location].byTime[photo.time].totalLikes += photo.likes;
-                    analysis[photo.location].byTime[photo.time].posts.push(photo);
-                });
-                Object.keys(analysis).forEach(location => {
-                    const locationData = analysis[location];
-                    locationData.averageLikes = Math.round(locationData.totalLikes / locationData.totalPhotos);
-                    locationData.publicPosts.sort((a, b) => b.likes - a.likes);
-                    Object.keys(locationData.byTime).forEach(timeOfDay => {
-                        const timeData = locationData.byTime[timeOfDay];
-                        timeData.averageLikes = Math.round(timeData.totalLikes / timeData.count);
-                        timeData.posts.sort((a, b) => b.likes - a.likes);
-                        if (timeData.averageLikes > locationData.bestTimeScore) {
-                            locationData.bestTimeScore = timeData.averageLikes;
-                            locationData.bestTime = timeOfDay;
-                        }
-                    });
-                    locationData.popularityScore = Math.min(100, Math.round((locationData.averageLikes / 15) * 10));
-                });
-                return analysis;
-            },
+            { id:"ecpark_001", location:"East Coast Park", time:"sunset", hashtags:"#beachphoto #parkphoto #sunsetphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/eastcoastparksingapore/", title:"East Coast Park Photography", likes:1050, emoji:"🚴" },
+            { id:"ecpark_002", location:"East Coast Park", time:"sunset", hashtags:"#beachphoto #parkphoto #coastalphoto", platform:"pexels", link:"https://www.pexels.com/search/east%20coast%20park/", title:"East Coast Park Photos", likes:920, emoji:"🏄" },
+            { id:"ecpark_003", location:"East Coast Park", time:"sunset", hashtags:"#beachphoto #parkphoto #sunsetphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/east-coast-park-singapore", title:"East Coast Park Unsplash", likes:1000, emoji:"🌊" },
+            { id:"ecpark_004", location:"East Coast Park", time:"sunset", hashtags:"#beachphoto #parkphoto #coastalphoto", platform:"500px", link:"https://500px.com/search?q=east+coast+park", title:"East Coast Park 500px", likes:1050, emoji:"🥥" },
+            { id:"ecpark_005", location:"East Coast Park", time:"sunset", hashtags:"#beachphoto #parkphoto #sunsetphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=east%20coast%20park%20singapore", title:"East Coast Park Stock Photos", likes:880, emoji:"🏖️" },
 
-            getRecommendations: function() {
-                const analysis = this.analyzePhotos();
-                const recommendations = [];
-                Object.keys(analysis).forEach(location => {
-                    const data = analysis[location];
-                    recommendations.push({
-                        location: location, bestTime: data.bestTime, confidence: data.bestTimeScore,
-                        score: data.popularityScore, publicPosts: data.publicPosts, byPlatform: data.byPlatform,
-                        totalPhotos: data.totalPhotos, summary: `Best time: ${data.bestTime}`
-                    });
-                });
-                recommendations.sort((a, b) => b.score - a.score);
-                return recommendations;
-            },
+            { id:"changi_001", location:"Changi Airport", time:"day", hashtags:"#airportphoto #modernphoto #terminalphoto", platform:"instagram", link:"https://www.instagram.com/explore/tags/changiairport/", title:"Changi Airport Photography", likes:1140, emoji:"✈️" },
+            { id:"changi_002", location:"Changi Airport", time:"day", hashtags:"#airportphoto #modernphoto", platform:"pexels", link:"https://www.pexels.com/search/changi%20airport/", title:"Changi Airport Photos", likes:1000, emoji:"🛫" },
+            { id:"changi_003", location:"Changi Airport", time:"day", hashtags:"#airportphoto #modernphoto #terminalphoto", platform:"unsplash", link:"https://unsplash.com/s/photos/changi-airport-singapore", title:"Changi Airport Unsplash", likes:1080, emoji:"🌫️" },
+            { id:"changi_004", location:"Changi Airport", time:"day", hashtags:"#airportphoto #modernphoto", platform:"500px", link:"https://500px.com/search?q=changi+airport", title:"Changi Airport 500px", likes:1120, emoji:"🛬" },
+            { id:"changi_005", location:"Changi Airport", time:"day", hashtags:"#airportphoto #modernphoto #terminalphoto", platform:"istockphoto", link:"https://www.istockphoto.com/search/2/image?phrase=changi%20airport%20singapore", title:"Changi Airport Stock Photos", likes:950, emoji:"🧳" }
+        ],
 
-            getPostsByPlatform: function(location, platform) {
-                const analysis = this.analyzePhotos();
-                if (!analysis[location] || !analysis[location].byPlatform[platform]) return [];
-                return analysis[location].byPlatform[platform];
-            },
-
-            getPublicPhotosForLocation: function(location) {
-                const analysis = this.analyzePhotos();
-                if (!analysis[location]) return [];
-                return analysis[location].publicPosts;
-            },
-
-            // Get ONE random photo for balloon popup
-            getRandomPhoto: function(location, excludeId) {
-                const photos = this.getPublicPhotosForLocation(location);
-                let pool = photos;
-                if (excludeId && photos.length > 1) {
-                    pool = photos.filter(p => p.id !== excludeId);
+        analyzePhotos: function() {
+            const analysis = {};
+            this.photosDatabase.forEach(photo => {
+                if (!analysis[photo.location]) {
+                    analysis[photo.location] = { location: photo.location, totalPhotos:0, totalLikes:0, averageLikes:0, byTime:{}, byPlatform:{}, bestTime:"unknown", bestTimeScore:0, popularityScore:0, publicPosts:[] };
                 }
-                return pool[Math.floor(Math.random() * pool.length)];
-            },
+                analysis[photo.location].totalPhotos += 1;
+                analysis[photo.location].totalLikes += photo.likes;
+                analysis[photo.location].publicPosts.push(photo);
+                if (!analysis[photo.location].byPlatform[photo.platform]) analysis[photo.location].byPlatform[photo.platform] = [];
+                analysis[photo.location].byPlatform[photo.platform].push(photo);
+                if (!analysis[photo.location].byTime[photo.time]) analysis[photo.location].byTime[photo.time] = { count:0, totalLikes:0, averageLikes:0, posts:[] };
+                analysis[photo.location].byTime[photo.time].count += 1;
+                analysis[photo.location].byTime[photo.time].totalLikes += photo.likes;
+                analysis[photo.location].byTime[photo.time].posts.push(photo);
+            });
+            Object.keys(analysis).forEach(location => {
+                const ld = analysis[location];
+                ld.averageLikes = Math.round(ld.totalLikes / ld.totalPhotos);
+                ld.publicPosts.sort((a,b) => b.likes - a.likes);
+                Object.keys(ld.byTime).forEach(timeOfDay => {
+                    const td = ld.byTime[timeOfDay];
+                    td.averageLikes = Math.round(td.totalLikes / td.count);
+                    td.posts.sort((a,b) => b.likes - a.likes);
+                    if (td.averageLikes > ld.bestTimeScore) { ld.bestTimeScore = td.averageLikes; ld.bestTime = timeOfDay; }
+                });
+                ld.popularityScore = Math.min(100, Math.round((ld.averageLikes / 15) * 10));
+            });
+            return analysis;
+        },
 
-            getPlatformInfo: function(platform) {
-                const platformInfo = {
-                    instagram: { name: "Instagram", icon: "📷" },
-                    pexels: { name: "Pexels", icon: "🆓" },
-                    unsplash: { name: "Unsplash", icon: "⭐" },
-                    "500px": { name: "500px", icon: "📱" },
-                    istockphoto: { name: "iStock", icon: "💰" },
-                    facebook: { name: "Facebook", icon: "👥" }
-                };
-                return platformInfo[platform] || null;
-            }
-        };
+        getRecommendations: function() {
+            const analysis = this.analyzePhotos();
+            const recs = [];
+            Object.keys(analysis).forEach(location => {
+                const d = analysis[location];
+                recs.push({ location, bestTime: d.bestTime, score: d.popularityScore, totalPhotos: d.totalPhotos });
+            });
+            recs.sort((a,b) => b.score - a.score);
+            return recs;
+        },
+
+        getPostsByPlatform: function(location, platform) {
+            const a = this.analyzePhotos();
+            if (!a[location] || !a[location].byPlatform[platform]) return [];
+            return a[location].byPlatform[platform];
+        },
+
+        getPublicPhotosForLocation: function(location) {
+            const a = this.analyzePhotos();
+            if (!a[location]) return [];
+            return a[location].publicPosts;
+        },
+
+        getRandomPhoto: function(location, excludeId) {
+            const photos = this.getPublicPhotosForLocation(location);
+            let pool = photos;
+            if (excludeId && photos.length > 1) pool = photos.filter(p => p.id !== excludeId);
+            return pool[Math.floor(Math.random() * pool.length)];
+        },
+
+        getPlatformInfo: function(platform) {
+            const info = {
+                instagram: { name: "Instagram", icon: "📷" }, pexels: { name: "Pexels", icon: "🆓" },
+                unsplash: { name: "Unsplash", icon: "⭐" }, "500px": { name: "500px", icon: "📱" },
+                istockphoto: { name: "iStock", icon: "💰" }
+            };
+            return info[platform] || null;
+        }
+    };
+
+    /* thumbnail image — real (though generic) photo per location, seeded so it's consistent */
+    function thumbUrl(slug, w, h) { return `https://picsum.photos/seed/${slug}/${w||400}/${h||300}`; }
+    function locationBySlug(slug) { return locations.find(l => l.slug === slug); }
+    function slugFor(name) { const l = locations.find(x => x.name === name); return l ? l.slug : name.toLowerCase().replace(/\s+/g,'-'); }
+
+    /* ============ FAVORITES (localStorage) ============ */
+    function getFavorites() { try { return JSON.parse(localStorage.getItem('sgphoto_favorites') || '[]'); } catch(e) { return []; } }
+    function isFavorite(name) { return getFavorites().includes(name); }
+    function toggleFavorite(name) {
+        let favs = getFavorites();
+        if (favs.includes(name)) favs = favs.filter(f => f !== name); else favs.push(name);
+        localStorage.setItem('sgphoto_favorites', JSON.stringify(favs));
+        return favs.includes(name);
+    }
+
+    /* ============ ITINERARY (localStorage) ============ */
+    function getItinerary() { try { return JSON.parse(localStorage.getItem('sgphoto_itinerary') || '[]'); } catch(e) { return []; } }
+    function inItinerary(name) { return getItinerary().includes(name); }
+    function toggleItinerary(name) {
+        let it = getItinerary();
+        if (it.includes(name)) it = it.filter(x => x !== name); else it.push(name);
+        localStorage.setItem('sgphoto_itinerary', JSON.stringify(it));
+        return it.includes(name);
+    }
+    function clearItinerary() { localStorage.setItem('sgphoto_itinerary', '[]'); }
+    function haversine(lat1, lng1, lat2, lng2) {
+        const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLng = (lng2-lng1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    function optimizeItineraryOrder(names) {
+        const pts = names.map(n => locationBySlug(slugFor(n)) || locations.find(l=>l.name===n)).filter(Boolean);
+        if (pts.length <= 1) return pts;
+        const remaining = pts.slice(1); const ordered = [pts[0]];
+        let current = pts[0];
+        while (remaining.length) {
+            let bestIdx = 0, bestDist = Infinity;
+            remaining.forEach((p, i) => { const d = haversine(current.lat, current.lng, p.lat, p.lng); if (d < bestDist) { bestDist = d; bestIdx = i; } });
+            current = remaining.splice(bestIdx, 1)[0];
+            ordered.push(current);
+        }
+        return ordered;
+    }
+
+    /* ============ COMMUNITY PHOTOS (localStorage) ============ */
+    function getCommunityPhotos(location) { try { return JSON.parse(localStorage.getItem('sgphoto_community_' + location) || '[]'); } catch(e) { return []; } }
+    function addCommunityPhoto(location, name, caption, imageUrl) {
+        const list = getCommunityPhotos(location);
+        list.unshift({ name: name || 'Anonymous', caption: caption || '', imageUrl: imageUrl || '', date: new Date().toLocaleDateString() });
+        localStorage.setItem('sgphoto_community_' + location, JSON.stringify(list));
+    }
     </script>
 
-    <!-- Map Application with Balloon Popups -->
+    <!-- ============ MAP + BALLOON POPUPS ============ -->
     <script>
         let map;
-        const locations = [
-            { name: "Marina Bay Sands", lat: 1.2855, lng: 103.8565 },
-            { name: "Gardens by the Bay", lat: 1.2816, lng: 103.8636 },
-            { name: "Haji Lane", lat: 1.2965, lng: 103.8575 },
-            { name: "Chinatown", lat: 1.2804, lng: 103.8429 },
-            { name: "Merlion Park", lat: 1.2870, lng: 103.8547 },
-            { name: "Helix Bridge", lat: 1.2880, lng: 103.8597 },
-            { name: "Koon Seng Road", lat: 1.3218, lng: 103.8902 },
-            { name: "Sentosa Island", lat: 1.2489, lng: 103.8303 },
-            { name: "Singapore Flyer", lat: 1.2816, lng: 103.8632 },
-            { name: "Arab Street", lat: 1.2980, lng: 103.8570 },
-            { name: "Clarke Quay", lat: 1.2899, lng: 103.8479 },
-            { name: "Marina Barrage", lat: 1.2736, lng: 103.8433 },
-            { name: "Singapore Botanic Gardens", lat: 1.3153, lng: 103.8157 },
-            { name: "Universal Studios Singapore", lat: 1.2561, lng: 103.8229 },
-            { name: "Esplanade", lat: 1.2890, lng: 103.8550 },
-            { name: "MacRitchie Reservoir", lat: 1.3365, lng: 103.8277 },
-            { name: "East Coast Park", lat: 1.2964, lng: 103.9054 },
-            { name: "Changi Airport", lat: 1.3644, lng: 103.9915 }
-        ];
-
-        // Keep track of which photo is currently showing per location (for shuffle)
+        let markerRefs = {};
         const currentBalloonPhoto = {};
+
+        function categoryColor(cat) {
+            const colors = { "Landmarks":"#4285F4", "Gardens & Nature":"#0f9d58", "Street & Heritage":"#f4b400", "Night & Skyline":"#ab47bc", "Beach & Outdoor":"#00acc1", "Modern & Architecture":"#e53935" };
+            return colors[cat] || "#4285F4";
+        }
 
         function initMap() {
             map = L.map('map').setView([1.3521, 103.8198], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
 
             locations.forEach((loc) => {
-                const markerHtml = `<div class="map-marker-pulse" style="width: 18px; height: 18px; background-color: #4285F4; border-radius: 50%; border: 3px solid white;"></div>`;
-
-                const marker = L.marker([loc.lat, loc.lng], {
-                    icon: L.divIcon({
-                        html: markerHtml,
-                        className: 'custom-marker',
-                        iconSize: [18, 18],
-                        iconAnchor: [9, 9]
-                    })
-                }).addTo(map);
-
-                // Bind the balloon popup - built fresh each time it opens
-                marker.bindPopup(() => buildBalloonPopupHTML(loc.name), {
-                    maxWidth: 300,
-                    minWidth: 280,
-                    closeButton: true,
-                    autoClose: true,
-                    className: 'balloon-leaflet-popup'
-                });
-
-                // Also let sidebar update when marker is clicked
-                marker.on('click', () => {
-                    showLocationPosts(loc.name);
-                });
+                addOrUpdateMarker(loc);
             });
+
+            // deep link support: ?loc=slug
+            const params = new URLSearchParams(window.location.search);
+            const locParam = params.get('loc');
+            if (locParam) {
+                const loc = locationBySlug(locParam);
+                if (loc) {
+                    map.setView([loc.lat, loc.lng], 15);
+                    setTimeout(() => { markerRefs[loc.name].openPopup(); showLocationPosts(loc.name); }, 400);
+                    return;
+                }
+            }
+            renderHome();
+            fetchWeather();
         }
 
-        // ============ BALLOON POPUP BUILDER ============
+        function addOrUpdateMarker(loc) {
+            const fav = isFavorite(loc.name);
+            const color = fav ? '#ff8f00' : categoryColor(loc.category);
+            const markerHtml = `<div class="map-marker-pulse" style="width: 18px; height: 18px; background-color: ${color}; border-radius: 50%; border: 3px solid white;"></div>`;
+            if (markerRefs[loc.name]) { map.removeLayer(markerRefs[loc.name]); }
+            const marker = L.marker([loc.lat, loc.lng], {
+                icon: L.divIcon({ html: markerHtml, className: 'custom-marker', iconSize: [18,18], iconAnchor: [9,9] })
+            }).addTo(map);
+            marker.bindPopup(() => buildBalloonPopupHTML(loc.name), { maxWidth: 300, minWidth: 280, closeButton: true, autoClose: true });
+            marker.on('click', () => showLocationPosts(loc.name));
+            markerRefs[loc.name] = marker;
+        }
+        function refreshMarker(name) { const loc = locations.find(l => l.name === name); if (loc) addOrUpdateMarker(loc); }
+
         function buildBalloonPopupHTML(locationName) {
             const photo = photoAlgorithm.getRandomPhoto(locationName);
             currentBalloonPhoto[locationName] = photo.id;
-
-            const platformInfo = photoAlgorithm.getPlatformInfo(photo.platform);
-            const allPhotos = photoAlgorithm.getPublicPhotosForLocation(locationName);
-            const photoIndex = allPhotos.findIndex(p => p.id === photo.id);
-
-            let dotsHtml = '';
-            allPhotos.forEach((p, i) => {
-                dotsHtml += `<div class="balloon-dot ${i === photoIndex ? 'active' : ''}"></div>`;
-            });
-
-            const hashtagsHtml = photo.hashtags.split(' ').slice(0, 3).map(tag => `<span>${tag}</span>`).join(' ');
-
             const container = document.createElement('div');
             container.className = 'balloon-popup';
-            container.innerHTML = `
-                <div class="balloon-header">
-                    <div class="balloon-location-name">🎈 ${locationName}</div>
-                    <div class="balloon-subtitle">Random photo pick</div>
-                </div>
-                <div class="balloon-photo-display">
-                    <div class="balloon-photo-emoji">${photo.emoji}</div>
-                    <div class="balloon-photo-caption">${photo.title}</div>
-                    <span class="balloon-photo-source">${platformInfo.icon} ${platformInfo.name}</span>
-                    <div class="balloon-photo-likes">❤️ ${photo.likes} likes · ⏰ ${photo.time}</div>
-                </div>
-                <div class="balloon-dots">${dotsHtml}</div>
-                <div class="balloon-body">
-                    <div class="balloon-hashtags">${hashtagsHtml}</div>
-                    <div class="balloon-buttons">
-                        <button class="balloon-btn shuffle" data-action="shuffle" data-location="${locationName}">
-                            🔀 Shuffle
-                        </button>
-                        <a href="${photo.link}" target="_blank" class="balloon-btn view-link">
-                            <span class="balloon-platform-icon">${platformInfo.icon}</span>View ↗
-                        </a>
-                    </div>
-                </div>
-            `;
-
-            const shuffleBtn = container.querySelector('[data-action="shuffle"]');
-            shuffleBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                refreshBalloonPopup(locationName);
-            });
-
+            container.innerHTML = balloonInnerHTML(locationName, photo);
+            wireBalloonEvents(container, locationName);
             return container;
         }
 
-        function refreshBalloonPopup(locationName) {
-            const excludeId = currentBalloonPhoto[locationName];
-            const photo = photoAlgorithm.getRandomPhoto(locationName, excludeId);
-            currentBalloonPhoto[locationName] = photo.id;
-
+        function balloonInnerHTML(locationName, photo) {
             const platformInfo = photoAlgorithm.getPlatformInfo(photo.platform);
             const allPhotos = photoAlgorithm.getPublicPhotosForLocation(locationName);
             const photoIndex = allPhotos.findIndex(p => p.id === photo.id);
-
-            let dotsHtml = '';
-            allPhotos.forEach((p, i) => {
-                dotsHtml += `<div class="balloon-dot ${i === photoIndex ? 'active' : ''}"></div>`;
-            });
-
-            const hashtagsHtml = photo.hashtags.split(' ').slice(0, 3).map(tag => `<span>${tag}</span>`).join(' ');
-
-            const popupContentEl = document.querySelector('.leaflet-popup-content .balloon-popup');
-            if (!popupContentEl) return;
-
-            popupContentEl.innerHTML = `
+            const slug = slugFor(locationName);
+            let dotsHtml = allPhotos.map((p,i) => `<div class="balloon-dot ${i===photoIndex?'active':''}"></div>`).join('');
+            const hashtagsHtml = photo.hashtags.split(' ').slice(0,3).join(' ');
+            const fav = isFavorite(locationName);
+            const inItin = inItinerary(locationName);
+            return `
                 <div class="balloon-header">
-                    <div class="balloon-location-name">🎈 ${locationName}</div>
-                    <div class="balloon-subtitle">Random photo pick</div>
+                    <div><div class="balloon-location-name">🎈 ${locationName}</div><div class="balloon-subtitle">Random photo pick</div></div>
+                    <button class="balloon-fav" data-action="fav" data-location="${locationName}" title="Favorite">${fav ? '⭐' : '☆'}</button>
                 </div>
                 <div class="balloon-photo-display">
-                    <div class="balloon-photo-emoji">${photo.emoji}</div>
-                    <div class="balloon-photo-caption">${photo.title}</div>
+                    <img class="balloon-photo-img" src="${thumbUrl(slug, 280, 150)}" alt="${photo.title}" loading="lazy" onerror="this.style.display='none'"/>
+                    <div class="balloon-photo-caption">${photo.emoji} ${photo.title}</div>
                     <span class="balloon-photo-source">${platformInfo.icon} ${platformInfo.name}</span>
                     <div class="balloon-photo-likes">❤️ ${photo.likes} likes · ⏰ ${photo.time}</div>
                 </div>
@@ -709,155 +531,441 @@
                 <div class="balloon-body">
                     <div class="balloon-hashtags">${hashtagsHtml}</div>
                     <div class="balloon-buttons">
-                        <button class="balloon-btn shuffle" data-action="shuffle" data-location="${locationName}">
-                            🔀 Shuffle
-                        </button>
-                        <a href="${photo.link}" target="_blank" class="balloon-btn view-link">
-                            <span class="balloon-platform-icon">${platformInfo.icon}</span>View ↗
-                        </a>
+                        <button class="balloon-btn shuffle" data-action="shuffle" data-location="${locationName}">${t('shuffle')}</button>
+                        <a href="${photo.link}" target="_blank" class="balloon-btn view-link">${platformInfo.icon} ${t('viewOn')} ↗</a>
                     </div>
+                    <button class="balloon-btn itin ${inItin?'added':''}" data-action="itin" data-location="${locationName}" style="width:100%;">${inItin ? t('addedToItinerary') : t('addToItinerary')}</button>
+                    <div class="balloon-details-link" data-action="details" data-location="${locationName}">See all photos & details →</div>
                 </div>
             `;
+        }
 
-            const shuffleBtn = popupContentEl.querySelector('[data-action="shuffle"]');
-            shuffleBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                refreshBalloonPopup(locationName);
+        function wireBalloonEvents(container, locationName) {
+            const shuffleBtn = container.querySelector('[data-action="shuffle"]');
+            if (shuffleBtn) shuffleBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); refreshBalloon(container, locationName); });
+            const favBtn = container.querySelector('[data-action="fav"]');
+            if (favBtn) favBtn.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const nowFav = toggleFavorite(locationName);
+                favBtn.textContent = nowFav ? '⭐' : '☆';
+                refreshMarker(locationName);
+            });
+            const itinBtn = container.querySelector('[data-action="itin"]');
+            if (itinBtn) itinBtn.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const nowIn = toggleItinerary(locationName);
+                itinBtn.textContent = nowIn ? t('addedToItinerary') : t('addToItinerary');
+                itinBtn.classList.toggle('added', nowIn);
+            });
+            const detailsLink = container.querySelector('[data-action="details"]');
+            if (detailsLink) detailsLink.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); showLocationPosts(locationName); });
+        }
+
+        function refreshBalloon(container, locationName) {
+            const excludeId = currentBalloonPhoto[locationName];
+            const photo = photoAlgorithm.getRandomPhoto(locationName, excludeId);
+            currentBalloonPhoto[locationName] = photo.id;
+            container.innerHTML = balloonInnerHTML(locationName, photo);
+            wireBalloonEvents(container, locationName);
+        }
+    </script>
+
+    <!-- ============ SIDEBAR: HOME (search/filter/weather/itinerary) ============ -->
+    <script>
+        let activeCategory = 'all';
+        let activeTimeFilter = 'all';
+        let searchQuery = '';
+
+        function filteredLocations() {
+            return locations.filter(loc => {
+                const matchesSearch = loc.name.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesCategory = activeCategory === 'all' || loc.category === activeCategory;
+                let matchesTime = true;
+                if (activeTimeFilter !== 'all') {
+                    const analysis = photoAlgorithm.analyzePhotos();
+                    matchesTime = analysis[loc.name] && analysis[loc.name].bestTime === activeTimeFilter;
+                }
+                return matchesSearch && matchesCategory && matchesTime;
             });
         }
 
-        // ============ SIDEBAR FUNCTIONS ============
-        function showLocationPosts(locationName) {
-            const posts = photoAlgorithm.getPublicPhotosForLocation(locationName);
+        function renderHome() {
             const sidebarContent = document.getElementById('sidebarContent');
-
+            const favs = getFavorites();
+            const itin = getItinerary();
             let html = `
-                <button class="toggle-btn" onclick="toggleAlgorithmPanel()">
-                    🤖 Show All (${locations.length}) Locations
-                </button>
-                <div class="location-name">${locationName}</div>
-                <div class="hint-box">🎈 Tap the pin on the map again to pop a fresh photo balloon!</div>
+                <div class="btn-row">
+                    <button class="toggle-btn" onclick="toggleAlgorithmPanel()">${t('showRecommendations')}</button>
+                </div>
+                <div class="btn-row">
+                    <button class="toggle-btn secondary" onclick="renderItineraryPanel()">${t('myItinerary')} (${itin.length})</button>
+                    <button class="toggle-btn secondary" onclick="renderFavoritesPanel()">${t('favorites')} (${favs.length})</button>
+                </div>
+                <div id="weatherWidget" class="weather-widget">
+                    <div class="weather-row"><div class="weather-temp">--°C</div><div class="weather-detail">${t('weatherNow')}<br/>Loading...</div></div>
+                </div>
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="${t('searchPlaceholder')}" value="${searchQuery}" oninput="onSearchInput(this.value)" />
+                </div>
+                <div class="filter-chips" id="categoryChips">
+                    <div class="chip ${activeCategory==='all'?'active':''}" onclick="setCategory('all')">${t('allCategories')}</div>
+                    ${categories.map(c => `<div class="chip ${activeCategory===c?'active':''}" onclick="setCategory('${c}')">${c}</div>`).join('')}
+                </div>
+                <select class="select-input" onchange="setTimeFilter(this.value)">
+                    <option value="all" ${activeTimeFilter==='all'?'selected':''}>${t('filterByTime')}: ${t('anyTime')}</option>
+                    <option value="morning" ${activeTimeFilter==='morning'?'selected':''}>Morning</option>
+                    <option value="day" ${activeTimeFilter==='day'?'selected':''}>Day</option>
+                    <option value="evening" ${activeTimeFilter==='evening'?'selected':''}>Evening</option>
+                    <option value="sunset" ${activeTimeFilter==='sunset'?'selected':''}>Sunset</option>
+                    <option value="night" ${activeTimeFilter==='night'?'selected':''}>Night</option>
+                </select>
+                <div id="locationListContainer"></div>
             `;
+            sidebarContent.innerHTML = html;
+            renderLocationList();
+            fetchWeather();
+        }
 
-            const platforms = [...new Set(posts.map(p => p.platform))];
-            html += `<div class="filter-section"><div class="filter-label">📱 Available Photos</div><div class="platform-tabs">`;
-            platforms.forEach(platform => {
-                const platformInfo = photoAlgorithm.getPlatformInfo(platform);
-                const count = posts.filter(p => p.platform === platform).length;
-                html += `<button class="platform-tab" onclick="filterByPlatform('${locationName}', '${platform}')">${platformInfo.icon} <span class="platform-count">${count}</span></button>`;
-            });
-            html += `</div></div><div class="public-posts-section"><div class="section-title">📸 Real Public Photo Posts (${posts.length} Total)</div>`;
-
-            posts.forEach(post => {
-                const platformInfo = photoAlgorithm.getPlatformInfo(post.platform);
+        function renderLocationList() {
+            const container = document.getElementById('locationListContainer');
+            if (!container) return;
+            const list = filteredLocations();
+            if (list.length === 0) { container.innerHTML = `<div class="no-results">No locations match your filters.</div>`; return; }
+            let html = '';
+            list.forEach(loc => {
+                const fav = isFavorite(loc.name);
                 html += `
-                    <div class="photo-post-card">
-                        <div class="post-header">
-                            <div class="post-icon">${post.emoji}</div>
-                            <div class="post-info">
-                                <div class="post-platform">${platformInfo.icon} ${post.platform.toUpperCase()}</div>
-                                <div class="post-title">${post.title}</div>
-                                <div class="post-meta">
-                                    <span>⏰ ${post.time}</span>
-                                    <span>❤️ ${post.likes}</span>
-                                </div>
-                                <div class="post-hashtags">
-                                    ${post.hashtags.split(' ').slice(0, 3).map(tag => `<span class="post-hashtag">${tag}</span>`).join('')}
-                                </div>
-                                <a href="${post.link}" target="_blank" class="post-button ${post.platform}">
-                                    View <span class="external-icon">↗</span>
-                                </a>
-                            </div>
+                    <div class="loc-list-item" onclick="showLocationPosts('${loc.name}')">
+                        <div>
+                            <div class="loc-list-name">${loc.name}</div>
+                            <div class="loc-list-meta">${loc.category} · crowd: ${loc.crowd}</div>
                         </div>
+                        <span class="loc-list-star" onclick="event.stopPropagation(); quickToggleFav('${loc.name}')">${fav ? '⭐' : '☆'}</span>
                     </div>
                 `;
             });
+            container.innerHTML = html;
+        }
 
+        function quickToggleFav(name) { toggleFavorite(name); refreshMarker(name); renderLocationList(); }
+        function onSearchInput(val) { searchQuery = val; renderLocationList(); }
+        function setCategory(cat) { activeCategory = cat; renderHome(); }
+        function setTimeFilter(val) { activeTimeFilter = val; renderLocationList(); }
+
+        /* ============ WEATHER + GOLDEN HOUR (Open-Meteo + sunrise-sunset.org, both free/no-key) ============ */
+        async function fetchWeather() {
+            const el = document.getElementById('weatherWidget');
+            if (!el) return;
+            try {
+                const [weatherRes, sunRes] = await Promise.all([
+                    fetch('https://api.open-meteo.com/v1/forecast?latitude=1.3521&longitude=103.8198&current=temperature_2m,weather_code&timezone=Asia%2FSingapore'),
+                    fetch('https://api.sunrise-sunset.org/json?lat=1.3521&lng=103.8198&formatted=0')
+                ]);
+                const weatherData = await weatherRes.json();
+                const sunData = await sunRes.json();
+                const temp = weatherData?.current?.temperature_2m;
+                const sunsetUTC = sunData?.results?.sunset;
+                let sunsetLocal = '--';
+                let goldenHourNow = false;
+                if (sunsetUTC) {
+                    const sunsetDate = new Date(sunsetUTC);
+                    sunsetLocal = sunsetDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' });
+                    const now = new Date();
+                    const diffMins = Math.abs((sunsetDate - now) / 60000);
+                    goldenHourNow = diffMins <= 60;
+                }
+                el.innerHTML = `
+                    <div class="weather-row">
+                        <div class="weather-temp">${temp !== undefined ? Math.round(temp) + '°C' : '--°C'}</div>
+                        <div class="weather-detail">${t('weatherNow')}<br/>🌇 Sunset today: ${sunsetLocal}</div>
+                    </div>
+                    ${goldenHourNow ? `<div class="golden-hour-tag">${t('goldenHourSoon')}</div>` : ''}
+                `;
+            } catch (e) {
+                el.innerHTML = `<div class="weather-row"><div class="weather-detail">${t('weatherNow')}<br/>Weather unavailable offline.</div></div>`;
+            }
+        }
+    </script>
+
+    <!-- ============ ITINERARY / FAVORITES PANELS ============ -->
+    <script>
+        function renderItineraryPanel() {
+            const sidebarContent = document.getElementById('sidebarContent');
+            const names = getItinerary();
+            let html = `<button class="toggle-btn" onclick="renderHome()">${t('backToMap')}</button>
+                <div class="itinerary-section">
+                    <div class="section-title">🧭 ${t('myItinerary')}</div>`;
+            if (names.length === 0) {
+                html += `<div class="community-empty">${t('itineraryEmpty')}</div>`;
+            } else {
+                const ordered = optimizeItineraryOrder(names);
+                let totalKm = 0;
+                for (let i = 0; i < ordered.length - 1; i++) totalKm += haversine(ordered[i].lat, ordered[i].lng, ordered[i+1].lat, ordered[i+1].lng);
+                html += `<div style="font-size:0.78em; color:#5f6368; margin-bottom:10px;">Optimized order · approx ${totalKm.toFixed(1)} km total between stops</div>`;
+                ordered.forEach((loc, i) => {
+                    html += `
+                        <div class="itinerary-item">
+                            <div class="itinerary-order">${i+1}</div>
+                            <div style="flex:1;">
+                                <div style="font-weight:600; font-size:0.85em;" onclick="showLocationPosts('${loc.name}')" role="button">${loc.name}</div>
+                                <div style="font-size:0.72em; color:#80868b;">${loc.category}</div>
+                            </div>
+                            <button class="itinerary-remove" onclick="toggleItinerary('${loc.name}'); renderItineraryPanel();">✕</button>
+                        </div>
+                    `;
+                });
+                html += `<div class="btn-row" style="margin-top:10px;">
+                    <button class="toggle-btn secondary" onclick="flyItineraryRoute()">${t('optimizeRoute')}</button>
+                    <button class="toggle-btn" style="background:#a30000;" onclick="clearItinerary(); renderItineraryPanel();">${t('clearItinerary')}</button>
+                </div>`;
+            }
             html += `</div>`;
             sidebarContent.innerHTML = html;
         }
 
-        function filterByPlatform(locationName, platform) {
-            const posts = photoAlgorithm.getPostsByPlatform(locationName, platform);
+        let itineraryLine = null;
+        function flyItineraryRoute() {
+            const names = getItinerary();
+            const ordered = optimizeItineraryOrder(names);
+            if (itineraryLine) { map.removeLayer(itineraryLine); itineraryLine = null; }
+            if (ordered.length < 2) return;
+            const latlngs = ordered.map(l => [l.lat, l.lng]);
+            itineraryLine = L.polyline(latlngs, { color: '#ff8f00', weight: 4, dashArray: '6,8' }).addTo(map);
+            map.fitBounds(itineraryLine.getBounds(), { padding: [40,40] });
+        }
+
+        function renderFavoritesPanel() {
             const sidebarContent = document.getElementById('sidebarContent');
-            const platformInfo = photoAlgorithm.getPlatformInfo(platform);
-
-            let html = `
-                <button class="toggle-btn" onclick="showLocationPosts('${locationName}')">
-                    ← Back to All
-                </button>
-                <div class="location-name">${locationName}</div>
-                <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #4285f4;">
-                    <div style="font-weight: 600; color: #202124;">${platformInfo.icon} ${platformInfo.name}</div>
-                    <div style="font-size: 0.9em; color: #5f6368;">${posts.length} photos</div>
-                </div>
-                <div class="public-posts-section">
-            `;
-
-            if (posts.length === 0) {
-                html += `<div class="no-results">No photos on this platform</div>`;
+            const favs = getFavorites();
+            let html = `<button class="toggle-btn" onclick="renderHome()">${t('backToMap')}</button>
+                <div class="itinerary-section">
+                    <div class="section-title">⭐ ${t('favorites')}</div>`;
+            if (favs.length === 0) {
+                html += `<div class="community-empty">No favorites yet — tap ⭐ on any pin or list item.</div>`;
             } else {
-                posts.forEach(post => {
+                favs.forEach(name => {
+                    const loc = locations.find(l => l.name === name);
+                    if (!loc) return;
                     html += `
-                        <div class="photo-post-card">
-                            <div class="post-header">
-                                <div class="post-icon">${post.emoji}</div>
-                                <div class="post-info">
-                                    <div class="post-platform">${platformInfo.icon} ${post.platform.toUpperCase()}</div>
-                                    <div class="post-title">${post.title}</div>
-                                    <div class="post-meta">
-                                        <span>⏰ ${post.time}</span>
-                                        <span>❤️ ${post.likes}</span>
-                                    </div>
-                                    <div class="post-hashtags">
-                                        ${post.hashtags.split(' ').slice(0, 3).map(tag => `<span class="post-hashtag">${tag}</span>`).join('')}
-                                    </div>
-                                    <a href="${post.link}" target="_blank" class="post-button ${post.platform}">
-                                        View <span class="external-icon">↗</span>
-                                    </a>
-                                </div>
-                            </div>
+                        <div class="loc-list-item" onclick="showLocationPosts('${loc.name}')">
+                            <div><div class="loc-list-name">${loc.name}</div><div class="loc-list-meta">${loc.category}</div></div>
+                            <span class="loc-list-star" onclick="event.stopPropagation(); quickToggleFav('${loc.name}'); renderFavoritesPanel();">⭐</span>
                         </div>
                     `;
                 });
             }
-
             html += `</div>`;
             sidebarContent.innerHTML = html;
         }
 
         function toggleAlgorithmPanel() {
-            const recommendations = photoAlgorithm.getRecommendations();
+            const recs = photoAlgorithm.getRecommendations();
             const sidebarContent = document.getElementById('sidebarContent');
-
-            let html = `
-                <button class="toggle-btn" onclick="location.reload()">
-                    🗺️ Back to Map
-                </button>
-                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 8px; padding: 16px; margin-bottom: 15px; border-left: 4px solid #7c3aed;">
-                    <div style="font-weight: 600; color: #7c3aed; margin-bottom: 8px; font-size: 0.95em; text-transform: uppercase;">🤖 AI Recommendations</div>
-                    <p style="font-size: 0.9em; color: #5f6368; margin-bottom: 12px;">Ranked by 150+ public photo posts</p>
+            let html = `<button class="toggle-btn" onclick="renderHome()">${t('backToMap')}</button>
+                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 8px; padding: 14px; margin-bottom: 12px; border-left: 4px solid #7c3aed;">
+                    <div style="font-weight:700; color:#7c3aed; margin-bottom:6px; font-size:0.9em; text-transform:uppercase;">🤖 AI Recommendations</div>
+                    <p style="font-size:0.85em; color:#5f6368;">Ranked by public photo post engagement</p>
                 </div>
-                <div class="recommendation-grid">
-            `;
-
-            recommendations.forEach((rec, index) => {
+                <div class="recommendation-grid">`;
+            recs.forEach((rec, i) => {
                 html += `
                     <div class="recommendation-item" onclick="showLocationPosts('${rec.location}')">
-                        <div class="rec-location">${index + 1}. ${rec.location}</div>
-                        <div class="rec-info">
-                            <span style="font-size: 0.8em; color: #5f6368;">⏰ ${rec.bestTime} | 📸 ${rec.totalPhotos}</span>
-                            <span class="rec-score">${rec.score}/100</span>
+                        <div class="rec-location">${i+1}. ${rec.location}</div>
+                        <div class="rec-info"><span style="font-size:0.8em; color:#5f6368;">⏰ ${rec.bestTime} | 📸 ${rec.totalPhotos}</span><span class="rec-score">${rec.score}/100</span></div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            sidebarContent.innerHTML = html;
+        }
+    </script>
+
+    <!-- ============ LOCATION DETAIL VIEW ============ -->
+    <script>
+        function showLocationPosts(locationName) {
+            const loc = locations.find(l => l.name === locationName);
+            const posts = photoAlgorithm.getPublicPhotosForLocation(locationName);
+            const sidebarContent = document.getElementById('sidebarContent');
+            const fav = isFavorite(locationName);
+            const inItin = inItinerary(locationName);
+            const crowdClass = loc ? `crowd-${loc.crowd}` : '';
+
+            let html = `
+                <button class="toggle-btn" onclick="renderHome()">${t('backToMap')}</button>
+                <div class="location-name">
+                    <span>${locationName}</span>
+                    <button class="fav-star-btn" onclick="quickToggleFav('${locationName}'); showLocationPosts('${locationName}');">${fav ? '⭐' : '☆'}</button>
+                </div>
+                <div class="btn-row">
+                    <button class="toggle-btn ${inItin ? 'itinerary-add-btn added' : 'itinerary-add-btn'}" onclick="toggleItinerary('${locationName}'); showLocationPosts('${locationName}');">${inItin ? t('addedToItinerary') : t('addToItinerary')}</button>
+                    <button class="toggle-btn secondary" onclick="copyShareLink('${locationName}')">${t('shareLink')}</button>
+                </div>
+            `;
+
+            if (loc) {
+                html += `
+                    <div class="section-title">ℹ️ ${t('tripInfo')}</div>
+                    <div class="badge-row">
+                        <span class="info-badge">${loc.category}</span>
+                        <span class="info-badge ${crowdClass}">👥 Crowd: ${loc.crowd}</span>
+                        <span class="info-badge">${loc.accessibility}</span>
+                        <span class="info-badge">${loc.ticket}</span>
+                        <span class="info-badge">${loc.tripod}</span>
+                    </div>
+                `;
+            }
+
+            const platforms = [...new Set(posts.map(p => p.platform))];
+            html += `<div class="filter-section"><div class="filter-label">📱 Filter by Platform</div><div class="platform-tabs">`;
+            platforms.forEach(platform => {
+                const pi = photoAlgorithm.getPlatformInfo(platform);
+                const count = posts.filter(p => p.platform === platform).length;
+                html += `<button class="platform-tab" onclick="filterByPlatform('${locationName}', '${platform}')">${pi.icon} <span class="platform-count">${count}</span></button>`;
+            });
+            html += `</div></div>`;
+
+            html += `<div class="public-posts-section"><div class="section-title">📸 ${t('publicPosts')} (${posts.length})</div>`;
+            posts.forEach(post => {
+                const pi = photoAlgorithm.getPlatformInfo(post.platform);
+                html += `
+                    <div class="photo-post-card">
+                        <img class="post-thumb" src="${thumbUrl(slugFor(locationName) + '-' + post.id, 100, 100)}" alt="" loading="lazy" onerror="this.style.display='none'"/>
+                        <div class="post-info">
+                            <div class="post-platform">${pi.icon} ${post.platform.toUpperCase()}</div>
+                            <div class="post-title">${post.title}</div>
+                            <div class="post-meta"><span>⏰ ${post.time}</span><span>❤️ ${post.likes}</span></div>
+                            <div class="post-hashtags">${post.hashtags.split(' ').slice(0,3).join(' ')}</div>
+                            <a href="${post.link}" target="_blank" class="post-button ${post.platform}">${t('viewOn')} ↗</a>
                         </div>
                     </div>
                 `;
             });
+            html += `</div>`;
 
+            html += renderCommunitySection(locationName);
+
+            sidebarContent.innerHTML = html;
+            wireCommunityForm(locationName);
+
+            // Also pan map + open balloon for this location if marker exists
+            if (markerRefs[locationName]) {
+                map.panTo(markerRefs[locationName].getLatLng());
+            }
+        }
+
+        function filterByPlatform(locationName, platform) {
+            const posts = photoAlgorithm.getPostsByPlatform(locationName, platform);
+            const sidebarContent = document.getElementById('sidebarContent');
+            const pi = photoAlgorithm.getPlatformInfo(platform);
+            let html = `
+                <button class="toggle-btn" onclick="showLocationPosts('${locationName}')">${t('backToAll')}</button>
+                <div class="location-name"><span>${locationName}</span></div>
+                <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:12px; border-left:3px solid #4285f4;">
+                    <div style="font-weight:600; color:#202124;">${pi.icon} ${pi.name}</div>
+                    <div style="font-size:0.85em; color:#5f6368;">${posts.length} photos</div>
+                </div>
+                <div class="public-posts-section">
+            `;
+            if (posts.length === 0) { html += `<div class="no-results">No photos on this platform</div>`; }
+            else {
+                posts.forEach(post => {
+                    html += `
+                        <div class="photo-post-card">
+                            <img class="post-thumb" src="${thumbUrl(slugFor(locationName) + '-' + post.id, 100, 100)}" alt="" loading="lazy" onerror="this.style.display='none'"/>
+                            <div class="post-info">
+                                <div class="post-platform">${pi.icon} ${post.platform.toUpperCase()}</div>
+                                <div class="post-title">${post.title}</div>
+                                <div class="post-meta"><span>⏰ ${post.time}</span><span>❤️ ${post.likes}</span></div>
+                                <div class="post-hashtags">${post.hashtags.split(' ').slice(0,3).join(' ')}</div>
+                                <a href="${post.link}" target="_blank" class="post-button ${post.platform}">${t('viewOn')} ↗</a>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
             html += `</div>`;
             sidebarContent.innerHTML = html;
         }
 
+        /* ============ COMMUNITY PHOTOS ============ */
+        function renderCommunitySection(locationName) {
+            const photos = getCommunityPhotos(locationName);
+            let html = `<div class="community-section"><div class="section-title">📷 ${t('communityPhotos')}</div>`;
+            if (photos.length === 0) {
+                html += `<div class="community-empty">${t('noCommunityPhotos')}</div>`;
+            } else {
+                photos.forEach(p => {
+                    html += `
+                        <div class="community-photo-item">
+                            ${p.imageUrl ? `<img src="${p.imageUrl}" alt="" style="width:100%; max-height:160px; object-fit:cover; border-radius:6px; margin-bottom:6px;" onerror="this.style.display='none'"/>` : ''}
+                            <div style="font-weight:600; font-size:0.85em;">${p.name} <span style="font-weight:400; color:#999; font-size:0.85em;">· ${p.date}</span></div>
+                            ${p.caption ? `<div style="font-size:0.8em; color:#444; margin-top:2px;">${p.caption}</div>` : ''}
+                        </div>
+                    `;
+                });
+            }
+            html += `
+                <div class="section-title" style="margin-top:14px;">➕ ${t('shareYourPhoto')}</div>
+                <div class="community-form">
+                    <input type="text" id="communityName" placeholder="${t('yourName')}" maxlength="40" />
+                    <textarea id="communityCaption" rows="2" placeholder="${t('caption')}" maxlength="200"></textarea>
+                    <input type="url" id="communityImageUrl" placeholder="${t('imageUrlOptional')}" />
+                    <button class="toggle-btn secondary" id="communitySubmitBtn">${t('submit')}</button>
+                </div>
+            </div>`;
+            return html;
+        }
+
+        function wireCommunityForm(locationName) {
+            const btn = document.getElementById('communitySubmitBtn');
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                const name = document.getElementById('communityName').value.trim();
+                const caption = document.getElementById('communityCaption').value.trim();
+                const imageUrl = document.getElementById('communityImageUrl').value.trim();
+                if (!caption && !imageUrl) return;
+                addCommunityPhoto(locationName, name, caption, imageUrl);
+                showLocationPosts(locationName);
+            });
+        }
+
+        /* ============ SHARE LINK ============ */
+        function copyShareLink(locationName) {
+            const slug = slugFor(locationName);
+            const url = `${window.location.origin}${window.location.pathname}?loc=${slug}`;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => alert(t('linkCopied'))).catch(() => prompt('Copy this link:', url));
+            } else {
+                prompt('Copy this link:', url);
+            }
+        }
+    </script>
+
+    <!-- ============ LANGUAGE SWITCHER + PWA + INIT ============ -->
+    <script>
+        function applyLanguageStaticText() {
+            document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === currentLang));
+        }
+
+        document.getElementById('langSwitcher').addEventListener('click', (e) => {
+            const btn = e.target.closest('.lang-btn');
+            if (!btn) return;
+            currentLang = btn.dataset.lang;
+            localStorage.setItem('sgphoto_lang', currentLang);
+            applyLanguageStaticText();
+            renderHome();
+        });
+
+        /* PWA: register service worker if supported */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => { /* offline-safe: fails silently if sw.js unavailable */ });
+            });
+        }
+
+        applyLanguageStaticText();
         document.addEventListener('DOMContentLoaded', initMap);
     </script>
 </body>
