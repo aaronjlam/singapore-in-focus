@@ -2,7 +2,7 @@
 
 An interactive map of 18 top photography locations across Singapore. Tap any pin to pop open a **photo balloon** showing a random shot from that spot, shuffle for another, or jump straight to real posts on Instagram, Pexels, Unsplash, 500px, and iStock.
 
-**[🌐 Live Demo →](#)** *((https://aaronjlam.github.io/singapore-in-focus/))*
+**[🌐 Live Demo →](#)** *([singapore-in-focus](https://aaronjlam.github.io/singapore-in-focus/))*
 
 ![Made with HTML/CSS/JS](https://img.shields.io/badge/stack-HTML%20%2F%20CSS%20%2F%20JS-blue)
 ![Leaflet.js](https://img.shields.io/badge/map-Leaflet.js-199900)
