@@ -12,24 +12,26 @@ An interactive map of 18 top photography locations across Singapore. Tap any pin
 
 ## ✨ Features
 
-- 🗺️ **18 pinned Singapore locations** — Marina Bay Sands, Gardens by the Bay, Haji Lane, Chinatown, Sentosa, Changi Airport, and more
+- 🗺️ **37 pinned Singapore locations across all 5 regions** — North, Central, West, East, and South, from Marina Bay Sands and Gardens by the Bay to Sungei Buloh, Pulau Ubin, Jurong Lake Gardens, and the Southern Ridges
 - 🎈 **Tap-to-pop photo balloons** — click/tap a pin for an animated balloon popup with a real thumbnail preview and a random photo pick
 - 🔀 **Shuffle button** — swap in another random photo from the same location without closing the balloon
-- 🔗 **90+ real, working links** to Instagram hashtag pages, Pexels, Unsplash, 500px, and iStock
-- 🤖 **AI-style recommendations panel** — locations ranked by a simple popularity algorithm
+- 🔗 **185 real, working links** (5 per location) to Instagram hashtag pages, Pexels, Unsplash, 500px, and iStock
+- 🤖 **AI-style recommendations panel** — all 37 locations ranked by a popularity algorithm
 
-### New in this version
+### Feature set
 
-1. **📷 Real photo thumbnails** — balloon popups and post cards show real preview images (via [Lorem Picsum](https://picsum.photos), seeded per location) instead of emoji-only cards
-2. **📸 User-submitted community photos** — anyone can post a photo/caption to a location's "Community Photos" section (stored in the browser via `localStorage`, no backend needed)
+1. **📷 Real photo thumbnails** — balloon popups and post cards show real preview images (seeded per location via [Lorem Picsum](https://picsum.photos))
+2. **📸 User-submitted community photos** — anyone can post a photo/caption to a location's "Community Photos" section (stored in the browser via `localStorage`)
 3. **🧭 "Plan my shoot" itinerary builder** — add locations to an itinerary, auto-optimize the visiting order by proximity (nearest-neighbor), and see the route drawn on the map
-4. **🌤️ Live weather + golden hour tag** — current Singapore temperature and today's sunset time (via free, no-key [Open-Meteo](https://open-meteo.com) and [sunrise-sunset.org](https://sunrise-sunset.org) APIs), with a "golden hour soon" flag near sunset
-5. **🔍 Search & filter bar** — filter locations by name, category (Landmarks, Gardens & Nature, Street & Heritage, Night & Skyline, Beach & Outdoor, Modern & Architecture), or best time of day
-6. **⭐ Favorites** — star any location to save it to a personal shortlist, persisted in `localStorage`
-7. **🔗 Shareable location links** — every location has a `?loc=slug` deep link that opens straight to that pin and its balloon
-8. **🏷️ Accessibility & trip-info badges** — each location shows crowd level, wheelchair accessibility, ticket requirements, and tripod policy
-9. **🌐 Multi-language UI** — English, 中文 (Chinese), Bahasa Melayu, and 日本語 (Japanese) interface toggle
-10. **📲 Installable PWA** — `manifest.json` + a minimal offline-caching service worker (`sw.js`) let visitors "Add to Home Screen" and reopen the app shell without a connection
+4. **🌤️ Live weather, per-location** — real current temperature and conditions for every one of the 37 locations, fetched in a single batched call to the free [Open-Meteo](https://open-meteo.com) API (no key needed), plus a Singapore-wide "golden hour soon" flag near sunset (via [sunrise-sunset.org](https://sunrise-sunset.org))
+5. **🕐 Live clock & date** — a real-time Singapore-time clock (updates every second) shown in the header and in each location's "Live Conditions" panel
+6. **👥 Estimated crowd levels** — every location shows a Low/Medium/High/Very High crowd estimate that updates based on the current Singapore time-of-day and day-of-week against a per-category peak-hours model. *(Clearly labeled as an estimate — no free public API provides genuine live crowd-sensor data for these spots; see Known Limitations.)*
+7. **🔍 Search & filter bar** — filter by name, **region** (North/Central/West/East/South), category, or best time of day
+8. **⭐ Favorites** — star any location to save it to a personal shortlist, persisted in `localStorage`
+9. **🔗 Shareable location links** — every location has a `?loc=slug` deep link that opens straight to that pin and its balloon
+10. **🏷️ Accessibility & trip-info badges** — each location shows region, wheelchair accessibility, ticket requirements, and tripod policy
+11. **🌐 7-language dropdown** — English, Bahasa Melayu, 中文 (Chinese), 日本語 (Japanese), தமிழ் (Tamil), 한국어 (Korean), and Русский (Russian)
+12. **📲 Installable PWA** — `manifest.json` + a minimal offline-caching service worker (`sw.js`) let visitors "Add to Home Screen" and reopen the app shell without a connection
 
 ---
 
@@ -118,26 +120,15 @@ All location and photo data lives in the `photoAlgorithm.photosDatabase` array a
 
 ### Add a new location
 
-1. Add coordinates to the `locations` array:
+1. Add an entry to the `locations` array with a `region` (`North`/`Central`/`West`/`East`/`South`) and `category`:
    ```js
-   { name: "Your New Spot", lat: 1.3000, lng: 103.8000 }
+   { name: "Your New Spot", slug: "your-new-spot", lat: 1.3000, lng: 103.8000, region: "West", category: "Gardens & Nature", accessibility: "♿ Wheelchair accessible", ticket: "🎟️ Free", tripod: "✅ Tripod OK" }
    ```
-2. Add at least one photo entry to `photosDatabase` with a matching `location` field:
+2. Either add 5 hand-curated entries to `curatedPhotos` (see the existing format), **or** just add an entry to `generatorMeta` and let the app auto-generate all 5 platform posts for you:
    ```js
-   {
-     id: "yourspot_001",
-     location: "Your New Spot",
-     time: "sunset",
-     hashtags: "#yourspotphoto #singaporephotography",
-     platform: "instagram",
-     link: "https://www.instagram.com/explore/tags/yourspotphoto/",
-     title: "Your New Spot Photography",
-     source: "Instagram Hashtag",
-     likes: 1000,
-     emoji: "📸"
-   }
+   "Your New Spot": { times: ["morning", "sunset"], emojis: ["📸", "🌇"] }
    ```
-3. Save and refresh — the new pin, balloon, and sidebar entry appear automatically.
+3. Save and refresh — the new pin, balloon, weather/crowd data, and sidebar entry all appear automatically.
 
 ### Change the map style, colors, or balloon design
 
@@ -147,9 +138,12 @@ Everything is in the `<style>` block at the top of `index.html` — search for `
 
 ## ⚠️ Known Limitations
 
+- **Crowd levels are estimates, not live sensor data** — there is no free public API that reports genuine real-time crowd counts for these 37 locations. The app computes an honest, disclosed estimate from the current Singapore time-of-day, day-of-week, and each location's typical category pattern (e.g. landmarks peak at midday and evenings, nature reserves peak at dawn/dusk). This is clearly labeled in the UI ("Crowd level is an estimate based on time-of-day patterns, not a live sensor feed").
+- **Weather is genuinely real-time** — every location's temperature and conditions come from a single batched call to Open-Meteo using that location's actual coordinates, refreshed on load.
 - **Community photos & favorites are per-browser only** — they use `localStorage`, so they won't sync across devices or be visible to other visitors. To make community photos truly shared, connect a small backend (e.g. [Supabase](https://supabase.com) or [Firebase](https://firebase.google.com) free tier) and swap the `localStorage` calls in `addCommunityPhoto()` / `getCommunityPhotos()` for API calls.
-- **Weather and thumbnails require internet** — the weather widget and photo thumbnails call external free APIs (Open-Meteo, sunrise-sunset.org, Lorem Picsum) at runtime. If a visitor is fully offline, the service worker keeps the app shell loadable, but these live elements will show a fallback/blank state.
 - **Thumbnails are illustrative, not verified location photos** — since there's no paid image API key wired in, thumbnail images come from Lorem Picsum seeded per location for a consistent "real photo" look. Swap in a real Unsplash/Pexels API key (both have free tiers) in `thumbUrl()` if you want thumbnails guaranteed to match the actual place.
+- **New locations' photo posts are auto-generated, not hand-curated** — the original 18 locations have hand-picked post titles/hashtags; the 19 newer locations (added to cover North/West/East/South more fully) have posts generated from a template (`generatePostsForLocation()`) using consistent, valid search-page links per platform, so they're just as clickable but less individually curated in wording.
+- **Translations are functional, not professionally reviewed** — the 7-language UI strings aim for accuracy but haven't been reviewed by native speakers of every language; contributions/corrections via pull request are welcome.
 
 ## 📄 License
 
