@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Singapore Photo Spots — Interactive Photography Map</title>
-    <meta name="description" content="Explore 37 Singapore photography locations across the North, Central, West, East and South. Live weather, time, and estimated crowd levels. Tap a pin for a photo balloon, plan an itinerary, and browse real posts from Instagram, Pexels, Unsplash, 500px, and iStock." />
+    <meta name="description" content="Explore 69 Singapore photography locations across 9 regions (North, North-East, East, South-East, South, South-West, West, North-West, Central). Live weather, time, and estimated crowd levels. Tap a pin for a photo balloon, plan an itinerary, and browse real posts from Instagram, Pexels, Unsplash, 500px, and iStock." />
     <meta name="theme-color" content="#4285F4" />
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%88</text></svg>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
@@ -35,7 +38,7 @@
         .search-input { width: 100%; padding: 10px 12px 10px 34px; border-radius: 8px; border: 1px solid #dadce0; font-size: 0.9em; }
         .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.95em; opacity: 0.6; }
         .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-        .chip { padding: 5px 10px; border-radius: 16px; border: 1.5px solid #dadce0; background: white; font-size: 0.73em; cursor: pointer; font-weight: 500; color: #444; }
+        .chip { padding: 5px 10px; border-radius: 16px; border: 1.5px solid #dadce0; background: white; font-size: 0.73em; cursor: pointer; font-weight: 500; color: #444; font-family: inherit; }
         .chip.active { background: #4285F4; border-color: #4285F4; color: white; }
         .chip.region-chip.active { background: #0f9d58; border-color: #0f9d58; }
         .filter-group-label { font-size: 0.68em; font-weight: 700; text-transform: uppercase; color: #999; margin: 4px 0 4px; letter-spacing: .4px; }
@@ -57,7 +60,7 @@
         .loc-list-item:hover { border-color: #4285F4; background: #f8faff; }
         .loc-list-name { font-weight: 600; font-size: 0.9em; color: #202124; }
         .loc-list-meta { font-size: 0.7em; color: #80868b; margin-top: 2px; }
-        .loc-list-star { font-size: 1.1em; cursor: pointer; }
+        .loc-list-star { font-size: 1.1em; cursor: pointer; background: none; border: none; padding: 2px; font-family: inherit; }
 
         .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
         .info-badge { background: #f1f3f4; color: #444; padding: 4px 9px; border-radius: 6px; font-size: 0.72em; font-weight: 500; display: flex; align-items: center; gap: 4px; }
@@ -114,9 +117,30 @@
 
         @media (max-width: 768px) {
             .container { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; max-height: 48vh; }
-            #map { height: 52vh; }
+            .sidebar { width: 100%; height: auto; max-height: 58vh; }
+            #map { height: 42vh; }
+            .mobile-view-toggle { display: flex; }
         }
+        .mobile-view-toggle {
+            display: none;
+            position: fixed;
+            bottom: 14px;
+            right: 14px;
+            z-index: 500;
+            background: #202124;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 10px 16px;
+            font-size: 0.85em;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+        .container.mobile-map-focus #map { height: 88vh; }
+        .container.mobile-map-focus .sidebar { max-height: 0; padding: 0; overflow: hidden; }
+        .container.mobile-list-focus .sidebar { max-height: 88vh; }
+        .container.mobile-list-focus #map { height: 12vh; }
         .sidebar-content::-webkit-scrollbar { width: 6px; }
         .sidebar-content::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 3px; }
         .no-results { padding: 18px; text-align: center; color: #80868b; font-size: 0.88em; }
@@ -161,7 +185,7 @@
                         <div class="app-subtitle" data-i18n="appSubtitle">Tap a pin for a photo balloon 🎈</div>
                         <div class="live-clock" id="liveClock">--</div>
                     </div>
-                    <select class="lang-select" id="langSelect">
+                    <select class="lang-select" id="langSelect" aria-label="Choose language">
                         <option value="en">🇬🇧 English</option>
                         <option value="ms">🇲🇾 Bahasa Melayu</option>
                         <option value="zh">🇨🇳 中文</option>
@@ -175,19 +199,20 @@
             <div class="sidebar-content" id="sidebarContent"></div>
         </div>
         <div id="map"></div>
+        <button class="mobile-view-toggle" id="mobileViewToggle" onclick="toggleMobileView()" aria-label="Toggle between map and list view">📋 List</button>
     </div>
     <script>
     /* ============================================================
        I18N — UI string translations (EN / MS / ZH / JA / TA / KO / RU)
        ============================================================ */
     const i18n = {
-        en: { appTitle:"📍 Singapore Photo Spots", appSubtitle:"Tap a pin for a photo balloon 🎈", searchPlaceholder:"Search locations...", allCategories:"All", allRegions:"All Regions", showRecommendations:"🤖 Show All Recommendations", backToMap:"🗺️ Back to Map", myItinerary:"🧭 My Itinerary", favorites:"⭐ Favorites", weatherNow:"Now in Singapore", goldenHourSoon:"🌇 Golden hour soon!", addToItinerary:"Add to Itinerary", addedToItinerary:"Added ✓", removeFromItinerary:"Remove", optimizeRoute:"Optimize Route", clearItinerary:"Clear All", itineraryEmpty:"No stops yet — add locations from any pin or list item.", communityPhotos:"Community Photos", shareYourPhoto:"Share Your Photo", yourName:"Your name", caption:"Caption / story", imageUrlOptional:"Image URL (optional)", submit:"Post Photo", noCommunityPhotos:"No community photos yet — be the first!", publicPosts:"Real Public Photo Posts", tripInfo:"Trip Info", shuffle:"🔀 Shuffle", viewOn:"View", backToAll:"← Back to All", shareLink:"🔗 Copy Share Link", linkCopied:"Link copied!", filterByTime:"Best time", anyTime:"Any time", liveConditions:"Live Conditions", crowdLow:"Low", crowdMedium:"Medium", crowdHigh:"High", crowdVeryHigh:"Very High", crowdEstNote:"Crowd level is an estimate based on time-of-day patterns, not a live sensor feed.", weatherUnavailable:"Weather unavailable" },
-        ms: { appTitle:"📍 Lokasi Foto Singapura", appSubtitle:"Ketik pin untuk belon foto 🎈", searchPlaceholder:"Cari lokasi...", allCategories:"Semua", allRegions:"Semua Wilayah", showRecommendations:"🤖 Tunjuk Semua Cadangan", backToMap:"🗺️ Kembali ke Peta", myItinerary:"🧭 Itinerari Saya", favorites:"⭐ Kegemaran", weatherNow:"Sekarang di Singapura", goldenHourSoon:"🌇 Golden hour tidak lama lagi!", addToItinerary:"Tambah ke Itinerari", addedToItinerary:"Ditambah ✓", removeFromItinerary:"Buang", optimizeRoute:"Optimumkan Laluan", clearItinerary:"Kosongkan", itineraryEmpty:"Belum ada perhentian — tambah lokasi dari pin atau senarai.", communityPhotos:"Foto Komuniti", shareYourPhoto:"Kongsi Foto Anda", yourName:"Nama anda", caption:"Kapsyen / cerita", imageUrlOptional:"URL Imej (pilihan)", submit:"Hantar Foto", noCommunityPhotos:"Belum ada foto komuniti — jadi yang pertama!", publicPosts:"Siaran Foto Awam Sebenar", tripInfo:"Info Perjalanan", shuffle:"🔀 Kocok", viewOn:"Lihat", backToAll:"← Kembali", shareLink:"🔗 Salin Pautan", linkCopied:"Pautan disalin!", filterByTime:"Masa terbaik", anyTime:"Bila-bila masa", liveConditions:"Keadaan Semasa", crowdLow:"Rendah", crowdMedium:"Sederhana", crowdHigh:"Tinggi", crowdVeryHigh:"Sangat Tinggi", crowdEstNote:"Tahap kesesakan adalah anggaran berdasarkan corak masa, bukan data sensor langsung.", weatherUnavailable:"Cuaca tidak tersedia" },
-        zh: { appTitle:"📍 新加坡摄影地图", appSubtitle:"点击图钉查看照片气球 🎈", searchPlaceholder:"搜索地点...", allCategories:"全部", allRegions:"所有地区", showRecommendations:"🤖 显示所有推荐", backToMap:"🗺️ 返回地图", myItinerary:"🧭 我的行程", favorites:"⭐ 收藏", weatherNow:"新加坡实时天气", goldenHourSoon:"🌇 黄金时段即将到来!", addToItinerary:"加入行程", addedToItinerary:"已加入 ✓", removeFromItinerary:"移除", optimizeRoute:"优化路线", clearItinerary:"清空", itineraryEmpty:"还没有行程 — 从图钉或列表添加地点。", communityPhotos:"社区照片", shareYourPhoto:"分享你的照片", yourName:"你的名字", caption:"说明 / 故事", imageUrlOptional:"图片链接（可选）", submit:"发布照片", noCommunityPhotos:"还没有社区照片 — 成为第一个吧!", publicPosts:"真实公开照片帖子", tripInfo:"旅行信息", shuffle:"🔀 换一张", viewOn:"查看", backToAll:"← 返回全部", shareLink:"🔗 复制分享链接", linkCopied:"链接已复制!", filterByTime:"最佳时间", anyTime:"任何时间", liveConditions:"实时状况", crowdLow:"少", crowdMedium:"中等", crowdHigh:"多", crowdVeryHigh:"非常多", crowdEstNote:"人流水平是根据时间模式估算的，并非实时传感器数据。", weatherUnavailable:"天气数据暂不可用" },
-        ja: { appTitle:"📍 シンガポール撮影スポット", appSubtitle:"ピンをタップして写真バルーン表示 🎈", searchPlaceholder:"場所を検索...", allCategories:"すべて", allRegions:"すべての地域", showRecommendations:"🤖 おすすめをすべて表示", backToMap:"🗺️ 地図に戻る", myItinerary:"🧭 マイ旅程", favorites:"⭐ お気に入り", weatherNow:"シンガポールの現在", goldenHourSoon:"🌇 まもなくゴールデンアワー!", addToItinerary:"旅程に追加", addedToItinerary:"追加済み ✓", removeFromItinerary:"削除", optimizeRoute:"ルート最適化", clearItinerary:"すべて削除", itineraryEmpty:"まだ予定がありません — ピンやリストから場所を追加してください。", communityPhotos:"コミュニティ写真", shareYourPhoto:"写真をシェア", yourName:"お名前", caption:"キャプション / 説明", imageUrlOptional:"画像URL（任意）", submit:"投稿する", noCommunityPhotos:"まだ投稿がありません — 最初の投稿者になろう!", publicPosts:"実際の公開写真投稿", tripInfo:"旅行情報", shuffle:"🔀 シャッフル", viewOn:"見る", backToAll:"← 一覧に戻る", shareLink:"🔗 共有リンクをコピー", linkCopied:"リンクをコピーしました!", filterByTime:"ベストタイム", anyTime:"いつでも", liveConditions:"現在の状況", crowdLow:"少ない", crowdMedium:"普通", crowdHigh:"多い", crowdVeryHigh:"非常に多い", crowdEstNote:"混雑度は時間帯パターンに基づく推定値であり、リアルタイムセンサーのデータではありません。", weatherUnavailable:"天気情報が利用できません" },
-        ta: { appTitle:"📍 சிங்கப்பூர் புகைப்பட இடங்கள்", appSubtitle:"புகைப்பட பலூனுக்கு பின் ஒன்றைத் தட்டவும் 🎈", searchPlaceholder:"இடங்களைத் தேடுங்கள்...", allCategories:"அனைத்தும்", allRegions:"அனைத்து பகுதிகள்", showRecommendations:"🤖 அனைத்து பரிந்துரைகளையும் காட்டு", backToMap:"🗺️ வரைபடத்திற்குத் திரும்பு", myItinerary:"🧭 எனது பயணத் திட்டம்", favorites:"⭐ பிடித்தவை", weatherNow:"சிங்கப்பூரில் இப்போது", goldenHourSoon:"🌇 விரைவில் கோல்டன் ஹவர்!", addToItinerary:"பயணத் திட்டத்தில் சேர்", addedToItinerary:"சேர்க்கப்பட்டது ✓", removeFromItinerary:"நீக்கு", optimizeRoute:"பாதையை மேம்படுத்து", clearItinerary:"அனைத்தையும் அழி", itineraryEmpty:"இன்னும் இடங்கள் இல்லை — பின் அல்லது பட்டியலிலிருந்து சேர்க்கவும்.", communityPhotos:"சமூக புகைப்படங்கள்", shareYourPhoto:"உங்கள் புகைப்படத்தைப் பகிரவும்", yourName:"உங்கள் பெயர்", caption:"தலைப்பு / கதை", imageUrlOptional:"படத்தின் URL (விருப்பம்)", submit:"பதிவிடு", noCommunityPhotos:"இன்னும் சமூக புகைப்படங்கள் இல்லை — முதலாவதாக இருங்கள்!", publicPosts:"உண்மையான பொது புகைப்பட பதிவுகள்", tripInfo:"பயண தகவல்", shuffle:"🔀 மாற்று", viewOn:"பார்", backToAll:"← எல்லாவற்றுக்கும் திரும்பு", shareLink:"🔗 இணைப்பை நகலெடு", linkCopied:"இணைப்பு நகலெடுக்கப்பட்டது!", filterByTime:"சிறந்த நேரம்", anyTime:"எந்த நேரமும்", liveConditions:"நேரடி நிலைமைகள்", crowdLow:"குறைவு", crowdMedium:"மிதமான", crowdHigh:"அதிகம்", crowdVeryHigh:"மிக அதிகம்", crowdEstNote:"கூட்ட நிலை நேர அடிப்படையிலான மதிப்பீடு; நேரடி சென்சார் தரவு அல்ல.", weatherUnavailable:"வானிலை தகவல் இல்லை" },
-        ko: { appTitle:"📍 싱가포르 포토 스팟", appSubtitle:"핀을 탭하면 사진 풍선이 나타나요 🎈", searchPlaceholder:"장소 검색...", allCategories:"전체", allRegions:"모든 지역", showRecommendations:"🤖 모든 추천 보기", backToMap:"🗺️ 지도로 돌아가기", myItinerary:"🧭 내 일정", favorites:"⭐ 즐겨찾기", weatherNow:"현재 싱가포르 날씨", goldenHourSoon:"🌇 곧 골든아워!", addToItinerary:"일정에 추가", addedToItinerary:"추가됨 ✓", removeFromItinerary:"제거", optimizeRoute:"경로 최적화", clearItinerary:"모두 지우기", itineraryEmpty:"아직 일정이 없습니다 — 핀이나 목록에서 장소를 추가하세요.", communityPhotos:"커뮤니티 사진", shareYourPhoto:"사진 공유하기", yourName:"이름", caption:"설명 / 이야기", imageUrlOptional:"이미지 URL (선택)", submit:"사진 게시", noCommunityPhotos:"아직 커뮤니티 사진이 없습니다 — 첫 번째가 되어보세요!", publicPosts:"실제 공개 사진 게시물", tripInfo:"여행 정보", shuffle:"🔀 셔플", viewOn:"보기", backToAll:"← 전체로 돌아가기", shareLink:"🔗 공유 링크 복사", linkCopied:"링크가 복사되었습니다!", filterByTime:"최적 시간", anyTime:"언제든지", liveConditions:"실시간 정보", crowdLow:"한산함", crowdMedium:"보통", crowdHigh:"붐빔", crowdVeryHigh:"매우 붐빔", crowdEstNote:"혼잡도는 시간대 패턴 기반 추정치이며, 실시간 센서 데이터가 아닙니다.", weatherUnavailable:"날씨 정보 없음" },
-        ru: { appTitle:"📍 Фотолокации Сингапура", appSubtitle:"Нажмите на метку, чтобы увидеть фото 🎈", searchPlaceholder:"Поиск мест...", allCategories:"Все", allRegions:"Все регионы", showRecommendations:"🤖 Показать все рекомендации", backToMap:"🗺️ Назад к карте", myItinerary:"🧭 Мой маршрут", favorites:"⭐ Избранное", weatherNow:"Сейчас в Сингапуре", goldenHourSoon:"🌇 Скоро золотой час!", addToItinerary:"Добавить в маршрут", addedToItinerary:"Добавлено ✓", removeFromItinerary:"Удалить", optimizeRoute:"Оптимизировать маршрут", clearItinerary:"Очистить всё", itineraryEmpty:"Пока нет остановок — добавьте места с меток или из списка.", communityPhotos:"Фото сообщества", shareYourPhoto:"Поделиться фото", yourName:"Ваше имя", caption:"Подпись / история", imageUrlOptional:"URL изображения (необязательно)", submit:"Опубликовать фото", noCommunityPhotos:"Пока нет фото от сообщества — станьте первым!", publicPosts:"Реальные публичные фотопосты", tripInfo:"Информация о месте", shuffle:"🔀 Перемешать", viewOn:"Смотреть", backToAll:"← Назад ко всем", shareLink:"🔗 Скопировать ссылку", linkCopied:"Ссылка скопирована!", filterByTime:"Лучшее время", anyTime:"Любое время", liveConditions:"Текущие условия", crowdLow:"Мало людей", crowdMedium:"Средне", crowdHigh:"Много людей", crowdVeryHigh:"Очень много людей", crowdEstNote:"Уровень загруженности — оценка по времени суток, а не данные датчиков в реальном времени.", weatherUnavailable:"Погода недоступна" }
+        en: { appTitle:"📍 Singapore Photo Spots", appSubtitle:"Tap a pin for a photo balloon 🎈", searchPlaceholder:"Search locations...", allCategories:"All", allRegions:"All Regions", showRecommendations:"🤖 Show All Recommendations", backToMap:"🗺️ Back to Map", myItinerary:"🧭 My Itinerary", favorites:"⭐ Favorites", weatherNow:"Now in Singapore", goldenHourSoon:"🌇 Golden hour soon!", addToItinerary:"Add to Itinerary", addedToItinerary:"Added ✓", removeFromItinerary:"Remove", optimizeRoute:"Optimize Route", clearItinerary:"Clear All", itineraryEmpty:"No stops yet — add locations from any pin or list item.", communityPhotos:"Community Photos", shareYourPhoto:"Share Your Photo", yourName:"Your name", caption:"Caption / story", imageUrlOptional:"Image URL (optional)", submit:"Post Photo", noCommunityPhotos:"No community photos yet — be the first!", publicPosts:"Real Public Photo Posts", tripInfo:"Trip Info", shuffle:"🔀 Shuffle", viewOn:"View", backToAll:"← Back to All", shareLink:"🔗 Copy Share Link", linkCopied:"Link copied!", filterByTime:"Best time", anyTime:"Any time", liveConditions:"Live Conditions", crowdLow:"Low", crowdMedium:"Medium", crowdHigh:"High", crowdVeryHigh:"Very High", crowdEstNote:"Crowd level is an estimate based on time-of-day patterns, not a live sensor feed.", weatherUnavailable:"Weather unavailable", retryWeather:"🔄 Retry (needs internet)", openNow:"🟢 Open now", closedNow:"🔴 Closed now", openingHours:"Opening Hours" },
+        ms: { appTitle:"📍 Lokasi Foto Singapura", appSubtitle:"Ketik pin untuk belon foto 🎈", searchPlaceholder:"Cari lokasi...", allCategories:"Semua", allRegions:"Semua Wilayah", showRecommendations:"🤖 Tunjuk Semua Cadangan", backToMap:"🗺️ Kembali ke Peta", myItinerary:"🧭 Itinerari Saya", favorites:"⭐ Kegemaran", weatherNow:"Sekarang di Singapura", goldenHourSoon:"🌇 Golden hour tidak lama lagi!", addToItinerary:"Tambah ke Itinerari", addedToItinerary:"Ditambah ✓", removeFromItinerary:"Buang", optimizeRoute:"Optimumkan Laluan", clearItinerary:"Kosongkan", itineraryEmpty:"Belum ada perhentian — tambah lokasi dari pin atau senarai.", communityPhotos:"Foto Komuniti", shareYourPhoto:"Kongsi Foto Anda", yourName:"Nama anda", caption:"Kapsyen / cerita", imageUrlOptional:"URL Imej (pilihan)", submit:"Hantar Foto", noCommunityPhotos:"Belum ada foto komuniti — jadi yang pertama!", publicPosts:"Siaran Foto Awam Sebenar", tripInfo:"Info Perjalanan", shuffle:"🔀 Kocok", viewOn:"Lihat", backToAll:"← Kembali", shareLink:"🔗 Salin Pautan", linkCopied:"Pautan disalin!", filterByTime:"Masa terbaik", anyTime:"Bila-bila masa", liveConditions:"Keadaan Semasa", crowdLow:"Rendah", crowdMedium:"Sederhana", crowdHigh:"Tinggi", crowdVeryHigh:"Sangat Tinggi", crowdEstNote:"Tahap kesesakan adalah anggaran berdasarkan corak masa, bukan data sensor langsung.", weatherUnavailable:"Cuaca tidak tersedia", retryWeather:"🔄 Cuba lagi (perlu internet)", openNow:"🟢 Buka sekarang", closedNow:"🔴 Tutup sekarang", openingHours:"Waktu Operasi" },
+        zh: { appTitle:"📍 新加坡摄影地图", appSubtitle:"点击图钉查看照片气球 🎈", searchPlaceholder:"搜索地点...", allCategories:"全部", allRegions:"所有地区", showRecommendations:"🤖 显示所有推荐", backToMap:"🗺️ 返回地图", myItinerary:"🧭 我的行程", favorites:"⭐ 收藏", weatherNow:"新加坡实时天气", goldenHourSoon:"🌇 黄金时段即将到来!", addToItinerary:"加入行程", addedToItinerary:"已加入 ✓", removeFromItinerary:"移除", optimizeRoute:"优化路线", clearItinerary:"清空", itineraryEmpty:"还没有行程 — 从图钉或列表添加地点。", communityPhotos:"社区照片", shareYourPhoto:"分享你的照片", yourName:"你的名字", caption:"说明 / 故事", imageUrlOptional:"图片链接（可选）", submit:"发布照片", noCommunityPhotos:"还没有社区照片 — 成为第一个吧!", publicPosts:"真实公开照片帖子", tripInfo:"旅行信息", shuffle:"🔀 换一张", viewOn:"查看", backToAll:"← 返回全部", shareLink:"🔗 复制分享链接", linkCopied:"链接已复制!", filterByTime:"最佳时间", anyTime:"任何时间", liveConditions:"实时状况", crowdLow:"少", crowdMedium:"中等", crowdHigh:"多", crowdVeryHigh:"非常多", crowdEstNote:"人流水平是根据时间模式估算的，并非实时传感器数据。", weatherUnavailable:"天气数据暂不可用", retryWeather:"🔄 重试（需要网络连接）", openNow:"🟢 现在开放", closedNow:"🔴 现在关闭", openingHours:"营业时间" },
+        ja: { appTitle:"📍 シンガポール撮影スポット", appSubtitle:"ピンをタップして写真バルーン表示 🎈", searchPlaceholder:"場所を検索...", allCategories:"すべて", allRegions:"すべての地域", showRecommendations:"🤖 おすすめをすべて表示", backToMap:"🗺️ 地図に戻る", myItinerary:"🧭 マイ旅程", favorites:"⭐ お気に入り", weatherNow:"シンガポールの現在", goldenHourSoon:"🌇 まもなくゴールデンアワー!", addToItinerary:"旅程に追加", addedToItinerary:"追加済み ✓", removeFromItinerary:"削除", optimizeRoute:"ルート最適化", clearItinerary:"すべて削除", itineraryEmpty:"まだ予定がありません — ピンやリストから場所を追加してください。", communityPhotos:"コミュニティ写真", shareYourPhoto:"写真をシェア", yourName:"お名前", caption:"キャプション / 説明", imageUrlOptional:"画像URL（任意）", submit:"投稿する", noCommunityPhotos:"まだ投稿がありません — 最初の投稿者になろう!", publicPosts:"実際の公開写真投稿", tripInfo:"旅行情報", shuffle:"🔀 シャッフル", viewOn:"見る", backToAll:"← 一覧に戻る", shareLink:"🔗 共有リンクをコピー", linkCopied:"リンクをコピーしました!", filterByTime:"ベストタイム", anyTime:"いつでも", liveConditions:"現在の状況", crowdLow:"少ない", crowdMedium:"普通", crowdHigh:"多い", crowdVeryHigh:"非常に多い", crowdEstNote:"混雑度は時間帯パターンに基づく推定値であり、リアルタイムセンサーのデータではありません。", weatherUnavailable:"天気情報が利用できません", retryWeather:"🔄 再試行（インターネット接続が必要）", openNow:"🟢 営業中", closedNow:"🔴 営業時間外", openingHours:"営業時間" },
+        ta: { appTitle:"📍 சிங்கப்பூர் புகைப்பட இடங்கள்", appSubtitle:"புகைப்பட பலூனுக்கு பின் ஒன்றைத் தட்டவும் 🎈", searchPlaceholder:"இடங்களைத் தேடுங்கள்...", allCategories:"அனைத்தும்", allRegions:"அனைத்து பகுதிகள்", showRecommendations:"🤖 அனைத்து பரிந்துரைகளையும் காட்டு", backToMap:"🗺️ வரைபடத்திற்குத் திரும்பு", myItinerary:"🧭 எனது பயணத் திட்டம்", favorites:"⭐ பிடித்தவை", weatherNow:"சிங்கப்பூரில் இப்போது", goldenHourSoon:"🌇 விரைவில் கோல்டன் ஹவர்!", addToItinerary:"பயணத் திட்டத்தில் சேர்", addedToItinerary:"சேர்க்கப்பட்டது ✓", removeFromItinerary:"நீக்கு", optimizeRoute:"பாதையை மேம்படுத்து", clearItinerary:"அனைத்தையும் அழி", itineraryEmpty:"இன்னும் இடங்கள் இல்லை — பின் அல்லது பட்டியலிலிருந்து சேர்க்கவும்.", communityPhotos:"சமூக புகைப்படங்கள்", shareYourPhoto:"உங்கள் புகைப்படத்தைப் பகிரவும்", yourName:"உங்கள் பெயர்", caption:"தலைப்பு / கதை", imageUrlOptional:"படத்தின் URL (விருப்பம்)", submit:"பதிவிடு", noCommunityPhotos:"இன்னும் சமூக புகைப்படங்கள் இல்லை — முதலாவதாக இருங்கள்!", publicPosts:"உண்மையான பொது புகைப்பட பதிவுகள்", tripInfo:"பயண தகவல்", shuffle:"🔀 மாற்று", viewOn:"பார்", backToAll:"← எல்லாவற்றுக்கும் திரும்பு", shareLink:"🔗 இணைப்பை நகலெடு", linkCopied:"இணைப்பு நகலெடுக்கப்பட்டது!", filterByTime:"சிறந்த நேரம்", anyTime:"எந்த நேரமும்", liveConditions:"நேரடி நிலைமைகள்", crowdLow:"குறைவு", crowdMedium:"மிதமான", crowdHigh:"அதிகம்", crowdVeryHigh:"மிக அதிகம்", crowdEstNote:"கூட்ட நிலை நேர அடிப்படையிலான மதிப்பீடு; நேரடி சென்சார் தரவு அல்ல.", weatherUnavailable:"வானிலை தகவல் இல்லை", retryWeather:"🔄 மீண்டும் முயற்சி (இணையம் தேவை)", openNow:"🟢 இப்போது திறந்துள்ளது", closedNow:"🔴 இப்போது மூடப்பட்டுள்ளது", openingHours:"திறக்கும் நேரம்" },
+        ko: { appTitle:"📍 싱가포르 포토 스팟", appSubtitle:"핀을 탭하면 사진 풍선이 나타나요 🎈", searchPlaceholder:"장소 검색...", allCategories:"전체", allRegions:"모든 지역", showRecommendations:"🤖 모든 추천 보기", backToMap:"🗺️ 지도로 돌아가기", myItinerary:"🧭 내 일정", favorites:"⭐ 즐겨찾기", weatherNow:"현재 싱가포르 날씨", goldenHourSoon:"🌇 곧 골든아워!", addToItinerary:"일정에 추가", addedToItinerary:"추가됨 ✓", removeFromItinerary:"제거", optimizeRoute:"경로 최적화", clearItinerary:"모두 지우기", itineraryEmpty:"아직 일정이 없습니다 — 핀이나 목록에서 장소를 추가하세요.", communityPhotos:"커뮤니티 사진", shareYourPhoto:"사진 공유하기", yourName:"이름", caption:"설명 / 이야기", imageUrlOptional:"이미지 URL (선택)", submit:"사진 게시", noCommunityPhotos:"아직 커뮤니티 사진이 없습니다 — 첫 번째가 되어보세요!", publicPosts:"실제 공개 사진 게시물", tripInfo:"여행 정보", shuffle:"🔀 셔플", viewOn:"보기", backToAll:"← 전체로 돌아가기", shareLink:"🔗 공유 링크 복사", linkCopied:"링크가 복사되었습니다!", filterByTime:"최적 시간", anyTime:"언제든지", liveConditions:"실시간 정보", crowdLow:"한산함", crowdMedium:"보통", crowdHigh:"붐빔", crowdVeryHigh:"매우 붐빔", crowdEstNote:"혼잡도는 시간대 패턴 기반 추정치이며, 실시간 센서 데이터가 아닙니다.", weatherUnavailable:"날씨 정보 없음", retryWeather:"🔄 다시 시도 (인터넷 필요)", openNow:"🟢 영업 중", closedNow:"🔴 영업 종료", openingHours:"운영 시간" },
+        ru: { appTitle:"📍 Фотолокации Сингапура", appSubtitle:"Нажмите на метку, чтобы увидеть фото 🎈", searchPlaceholder:"Поиск мест...", allCategories:"Все", allRegions:"Все регионы", showRecommendations:"🤖 Показать все рекомендации", backToMap:"🗺️ Назад к карте", myItinerary:"🧭 Мой маршрут", favorites:"⭐ Избранное", weatherNow:"Сейчас в Сингапуре", goldenHourSoon:"🌇 Скоро золотой час!", addToItinerary:"Добавить в маршрут", addedToItinerary:"Добавлено ✓", removeFromItinerary:"Удалить", optimizeRoute:"Оптимизировать маршрут", clearItinerary:"Очистить всё", itineraryEmpty:"Пока нет остановок — добавьте места с меток или из списка.", communityPhotos:"Фото сообщества", shareYourPhoto:"Поделиться фото", yourName:"Ваше имя", caption:"Подпись / история", imageUrlOptional:"URL изображения (необязательно)", submit:"Опубликовать фото", noCommunityPhotos:"Пока нет фото от сообщества — станьте первым!", publicPosts:"Реальные публичные фотопосты", tripInfo:"Информация о месте", shuffle:"🔀 Перемешать", viewOn:"Смотреть", backToAll:"← Назад ко всем", shareLink:"🔗 Скопировать ссылку", linkCopied:"Ссылка скопирована!", filterByTime:"Лучшее время", anyTime:"Любое время", liveConditions:"Текущие условия", crowdLow:"Мало людей", crowdMedium:"Средне", crowdHigh:"Много людей", crowdVeryHigh:"Очень много людей", crowdEstNote:"Уровень загруженности — оценка по времени суток, а не данные датчиков в реальном времени.", weatherUnavailable:"Погода недоступна", retryWeather:"🔄 Повторить (нужен интернет)", openNow:"🟢 Открыто сейчас", closedNow:"🔴 Закрыто сейчас", openingHours:"Часы работы" }
     };
     let currentLang = localStorage.getItem('sgphoto_lang') || 'en';
     function t(key) { return (i18n[currentLang] && i18n[currentLang][key]) || i18n.en[key] || key; }
@@ -197,87 +222,87 @@
        ============================================================ */
     const locations = [
         // --- CENTRAL ---
-        { name:"Marina Bay Sands", slug:"marina-bay-sands", lat:1.2855, lng:103.8565, region:"Central", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free view / paid Skypark", tripod:"✅ Tripod OK outdoors" },
-        { name:"Gardens by the Bay", slug:"gardens-by-the-bay", lat:1.2816, lng:103.8636, region:"Central", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free outdoor / paid domes", tripod:"✅ Tripod OK" },
-        { name:"Haji Lane", slug:"haji-lane", lat:1.2965, lng:103.8575, region:"Central", category:"Street & Heritage", accessibility:"🚶 Narrow walkway", ticket:"🎟️ Free", tripod:"⚠️ Tripod discouraged (narrow)" },
-        { name:"Chinatown", slug:"chinatown", lat:1.2804, lng:103.8429, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK early morning" },
-        { name:"Merlion Park", slug:"merlion-park", lat:1.2870, lng:103.8547, region:"Central", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Helix Bridge", slug:"helix-bridge", lat:1.2880, lng:103.8597, region:"Central", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Singapore Flyer", slug:"singapore-flyer", lat:1.2816, lng:103.8632, region:"Central", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Paid ride", tripod:"⚠️ Not inside cabin" },
-        { name:"Arab Street", slug:"arab-street", lat:1.2980, lng:103.8570, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Clarke Quay", slug:"clarke-quay", lat:1.2899, lng:103.8479, region:"Central", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Marina Barrage", slug:"marina-barrage", lat:1.2736, lng:103.8433, region:"Central", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Singapore Botanic Gardens", slug:"botanic-gardens", lat:1.3153, lng:103.8157, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free (Orchid Garden paid)", tripod:"✅ Tripod OK" },
-        { name:"Esplanade", slug:"esplanade", lat:1.2890, lng:103.8550, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior", tripod:"✅ Tripod OK" },
-        { name:"MacRitchie Reservoir", slug:"macritchie-reservoir", lat:1.3365, lng:103.8277, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Fort Canning Park", slug:"fort-canning-park", lat:1.2939, lng:103.8461, region:"Central", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Bishan-Ang Mo Kio Park", slug:"bishan-amk-park", lat:1.3626, lng:103.8460, region:"North", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Bukit Timah Nature Reserve", slug:"bukit-timah-nature-reserve", lat:1.3520, lng:103.7767, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Steep nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
+        { name:"Marina Bay Sands", slug:"marina-bay-sands", lat:1.2855, lng:103.8565, region:"Central", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free view / paid Skypark", tripod:"✅ Tripod OK outdoors", hours:{ open24:false, text:"Exterior: 24 hours (SkyPark deck 11AM–10PM)", openHour:0, closeHour:24 } },
+        { name:"Gardens by the Bay", slug:"gardens-by-the-bay", lat:1.2816, lng:103.8636, region:"Central", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free outdoor / paid domes", tripod:"✅ Tripod OK", hours:{ open24:false, text:"Outdoor gardens 5AM–2AM (Domes 9AM–9PM)", openHour:5, closeHour:26 } },
+        { name:"Haji Lane", slug:"haji-lane", lat:1.2965, lng:103.8575, region:"Central", category:"Street & Heritage", accessibility:"🚶 Narrow walkway", ticket:"🎟️ Free", tripod:"⚠️ Tripod discouraged (narrow)", hours:{ open24:true, text:"24 hours" } },
+        { name:"Chinatown", slug:"chinatown", lat:1.2804, lng:103.8429, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK early morning", hours:{ open24:true, text:"24 hours" } },
+        { name:"Merlion Park", slug:"merlion-park", lat:1.2870, lng:103.8547, region:"Central", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Helix Bridge", slug:"helix-bridge", lat:1.2880, lng:103.8597, region:"Central", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Singapore Flyer", slug:"singapore-flyer", lat:1.2816, lng:103.8632, region:"Central", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Paid ride", tripod:"⚠️ Not inside cabin", hours:{ open24:false, text:"10AM–10PM daily", openHour:10, closeHour:22 } },
+        { name:"Arab Street", slug:"arab-street", lat:1.2980, lng:103.8570, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Clarke Quay", slug:"clarke-quay", lat:1.2899, lng:103.8479, region:"Central", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Marina Barrage", slug:"marina-barrage", lat:1.2736, lng:103.8433, region:"Central", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Singapore Botanic Gardens", slug:"botanic-gardens", lat:1.3153, lng:103.8157, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free (Orchid Garden paid)", tripod:"✅ Tripod OK", hours:{ open24:false, text:"5AM–12AM (Orchid Garden 8:30AM–7PM)", openHour:5, closeHour:24 } },
+        { name:"Esplanade", slug:"esplanade", lat:1.2890, lng:103.8550, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"MacRitchie Reservoir", slug:"macritchie-reservoir", lat:1.3365, lng:103.8277, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Fort Canning Park", slug:"fort-canning-park", lat:1.2939, lng:103.8461, region:"Central", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Bishan-Ang Mo Kio Park", slug:"bishan-amk-park", lat:1.3626, lng:103.8460, region:"North", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Bukit Timah Nature Reserve", slug:"bukit-timah-nature-reserve", lat:1.3520, lng:103.7767, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Steep nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
 
         // --- NORTH ---
-        { name:"Sembawang Hot Spring Park", slug:"sembawang-hot-spring-park", lat:1.4304, lng:103.8296, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Kranji Marshes", slug:"kranji-marshes", lat:1.4392, lng:103.7295, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Sungei Buloh Wetland Reserve", slug:"sungei-buloh-wetland-reserve", lat:1.4468, lng:103.7290, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Boardwalk trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Lower Seletar Reservoir Park", slug:"lower-seletar-reservoir-park", lat:1.3990, lng:103.8280, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
+        { name:"Sembawang Hot Spring Park", slug:"sembawang-hot-spring-park", lat:1.4304, lng:103.8296, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Kranji Marshes", slug:"kranji-marshes", lat:1.4392, lng:103.7295, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Sungei Buloh Wetland Reserve", slug:"sungei-buloh-wetland-reserve", lat:1.4468, lng:103.7290, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Boardwalk trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Lower Seletar Reservoir Park", slug:"lower-seletar-reservoir-park", lat:1.3990, lng:103.8280, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
 
         // --- WEST ---
-        { name:"Jurong Lake Gardens", slug:"jurong-lake-gardens", lat:1.3399, lng:103.7295, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Chinese & Japanese Gardens", slug:"chinese-japanese-gardens", lat:1.3416, lng:103.7267, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"HortPark", slug:"hortpark", lat:1.2865, lng:103.8032, region:"West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"West Coast Park", slug:"west-coast-park", lat:1.2955, lng:103.7649, region:"West", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
+        { name:"Jurong Lake Gardens", slug:"jurong-lake-gardens", lat:1.3399, lng:103.7295, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Chinese & Japanese Gardens", slug:"chinese-japanese-gardens", lat:1.3416, lng:103.7267, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"HortPark", slug:"hortpark", lat:1.2865, lng:103.8032, region:"West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"West Coast Park", slug:"west-coast-park", lat:1.2955, lng:103.7649, region:"West", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
 
         // --- EAST ---
-        { name:"Pulau Ubin", slug:"pulau-ubin", lat:1.4043, lng:103.9573, region:"North-East", category:"Beach & Outdoor", accessibility:"🥾 Unpaved rustic paths", ticket:"🎟️ Free (boat fare applies)", tripod:"✅ Tripod OK" },
-        { name:"Katong / Joo Chiat", slug:"katong-joo-chiat", lat:1.3048, lng:103.9026, region:"North-East", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Changi Beach Park", slug:"changi-beach-park", lat:1.3894, lng:103.9878, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Bedok Reservoir Park", slug:"bedok-reservoir-park", lat:1.3363, lng:103.9327, region:"North-East", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Koon Seng Road", slug:"koon-seng-road", lat:1.3218, lng:103.8902, region:"North-East", category:"Street & Heritage", accessibility:"🚶 Regular sidewalk", ticket:"🎟️ Free (residential — be respectful)", tripod:"✅ Tripod OK" },
-        { name:"East Coast Park", slug:"east-coast-park", lat:1.2964, lng:103.9054, region:"East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Changi Airport", slug:"changi-airport", lat:1.3644, lng:103.9915, region:"North-East", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free public areas", tripod:"✅ Tripod OK most areas" },
+        { name:"Pulau Ubin", slug:"pulau-ubin", lat:1.4043, lng:103.9573, region:"North-East", category:"Beach & Outdoor", accessibility:"🥾 Unpaved rustic paths", ticket:"🎟️ Free (boat fare applies)", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Katong / Joo Chiat", slug:"katong-joo-chiat", lat:1.3048, lng:103.9026, region:"North-East", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Changi Beach Park", slug:"changi-beach-park", lat:1.3894, lng:103.9878, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Bedok Reservoir Park", slug:"bedok-reservoir-park", lat:1.3363, lng:103.9327, region:"North-East", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Koon Seng Road", slug:"koon-seng-road", lat:1.3218, lng:103.8902, region:"North-East", category:"Street & Heritage", accessibility:"🚶 Regular sidewalk", ticket:"🎟️ Free (residential — be respectful)", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"East Coast Park", slug:"east-coast-park", lat:1.2964, lng:103.9054, region:"East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Changi Airport", slug:"changi-airport", lat:1.3644, lng:103.9915, region:"North-East", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free public areas", tripod:"✅ Tripod OK most areas", hours:{ open24:true, text:"24 hours" } },
 
         // --- SOUTH ---
-        { name:"Sentosa Island", slug:"sentosa-island", lat:1.2489, lng:103.8303, region:"South-West", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Entry fee applies", tripod:"✅ Tripod OK" },
-        { name:"Universal Studios Singapore", slug:"universal-studios", lat:1.2561, lng:103.8229, region:"South-West", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Entry fee applies", tripod:"⚠️ Tripods restricted" },
-        { name:"Southern Ridges (Henderson Waves)", slug:"southern-ridges-henderson-waves", lat:1.2765, lng:103.8093, region:"West", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Mount Faber Park", slug:"mount-faber-park", lat:1.2707, lng:103.8194, region:"West", category:"Night & Skyline", accessibility:"🥾 Some hilly paths", ticket:"🎟️ Free (cable car paid)", tripod:"✅ Tripod OK" },
-        { name:"Labrador Nature Reserve", slug:"labrador-nature-reserve", lat:1.2686, lng:103.8027, region:"West", category:"Beach & Outdoor", accessibility:"🥾 Coastal trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Keppel Bay / VivoCity Waterfront", slug:"keppel-bay-vivocity", lat:1.2647, lng:103.8221, region:"South-West", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
+        { name:"Sentosa Island", slug:"sentosa-island", lat:1.2489, lng:103.8303, region:"South-West", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Entry fee applies", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Universal Studios Singapore", slug:"universal-studios", lat:1.2561, lng:103.8229, region:"South-West", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Entry fee applies", tripod:"⚠️ Tripods restricted", hours:{ open24:false, text:"10AM–7PM (hours vary)", openHour:10, closeHour:19 } },
+        { name:"Southern Ridges (Henderson Waves)", slug:"southern-ridges-henderson-waves", lat:1.2765, lng:103.8093, region:"West", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Mount Faber Park", slug:"mount-faber-park", lat:1.2707, lng:103.8194, region:"West", category:"Night & Skyline", accessibility:"🥾 Some hilly paths", ticket:"🎟️ Free (cable car paid)", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Labrador Nature Reserve", slug:"labrador-nature-reserve", lat:1.2686, lng:103.8027, region:"West", category:"Beach & Outdoor", accessibility:"🥾 Coastal trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Keppel Bay / VivoCity Waterfront", slug:"keppel-bay-vivocity", lat:1.2647, lng:103.8221, region:"South-West", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
 
         // --- ADDITIONAL SPOTS (sourced from travel blogs, Tripadvisor forums, and photography guides) ---
-        { name:"Tiong Bahru", slug:"tiong-bahru", lat:1.2846, lng:103.8283, region:"West", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Pinnacle@Duxton", slug:"pinnacle-duxton", lat:1.2767, lng:103.8414, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Skybridge S$6 (residents free)", tripod:"⚠️ Restricted on skybridge" },
-        { name:"Dempsey Hill", slug:"dempsey-hill", lat:1.3049, lng:103.8095, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"CHIJMES", slug:"chijmes", lat:1.2947, lng:103.8520, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"ArtScience Museum", slug:"artscience-museum", lat:1.2862, lng:103.8593, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior / paid exhibits", tripod:"✅ Tripod OK outdoors" },
-        { name:"Victoria Theatre & Concert Hall", slug:"victoria-theatre", lat:1.2881, lng:103.8514, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior", tripod:"✅ Tripod OK" },
-        { name:"National Gallery Singapore", slug:"national-gallery-singapore", lat:1.2903, lng:103.8517, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior / paid galleries", tripod:"✅ Tripod OK outdoors" },
-        { name:"Bukit Timah Railway Station (Rail Corridor)", slug:"bukit-timah-railway-station", lat:1.3398, lng:103.7770, region:"North-West", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Bukit Brown Cemetery", slug:"bukit-brown-cemetery", lat:1.3388, lng:103.8291, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven, unpaved paths", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Haw Par Villa", slug:"haw-par-villa", lat:1.2820, lng:103.7815, region:"West", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Alkaff Mansion (Telok Blangah)", slug:"alkaff-mansion", lat:1.2727, lng:103.8138, region:"West", category:"Street & Heritage", accessibility:"🥾 Hillside grounds", ticket:"🎟️ Free grounds", tripod:"✅ Tripod OK" },
-        { name:"Sembawang Park", slug:"sembawang-park", lat:1.4568, lng:103.8339, region:"North", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Pasir Ris Park", slug:"pasir-ris-park", lat:1.3815, lng:103.9509, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Punggol Waterway Park", slug:"punggol-waterway-park", lat:1.4054, lng:103.9077, region:"North-East", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Jewel Changi Airport (Rain Vortex)", slug:"jewel-changi-airport", lat:1.3603, lng:103.9894, region:"North-East", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"⚠️ Tripods restricted at peak hours" },
-        { name:"Kong Meng San Phor Kark See Monastery", slug:"kong-meng-san-monastery", lat:1.3599, lng:103.8464, region:"North", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
+        { name:"Tiong Bahru", slug:"tiong-bahru", lat:1.2846, lng:103.8283, region:"West", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Pinnacle@Duxton", slug:"pinnacle-duxton", lat:1.2767, lng:103.8414, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Skybridge S$6 (residents free)", tripod:"⚠️ Restricted on skybridge", hours:{ open24:true, text:"24 hours" } },
+        { name:"Dempsey Hill", slug:"dempsey-hill", lat:1.3049, lng:103.8095, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:false, text:"Grounds: 24 hours (restaurants/shops vary)", openHour:0, closeHour:24 } },
+        { name:"CHIJMES", slug:"chijmes", lat:1.2947, lng:103.8520, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:false, text:"Exterior: 24 hours (restaurants vary)", openHour:0, closeHour:24 } },
+        { name:"ArtScience Museum", slug:"artscience-museum", lat:1.2862, lng:103.8593, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior / paid exhibits", tripod:"✅ Tripod OK outdoors", hours:{ open24:false, text:"Exterior: 24 hours (Exhibits 10AM–7PM)", openHour:0, closeHour:24 } },
+        { name:"Victoria Theatre & Concert Hall", slug:"victoria-theatre", lat:1.2881, lng:103.8514, region:"Central", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior", tripod:"✅ Tripod OK", hours:{ open24:false, text:"Exterior: 24 hours (event hours vary)", openHour:0, closeHour:24 } },
+        { name:"National Gallery Singapore", slug:"national-gallery-singapore", lat:1.2903, lng:103.8517, region:"Central", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior / paid galleries", tripod:"✅ Tripod OK outdoors", hours:{ open24:false, text:"10AM–7PM daily", openHour:10, closeHour:19 } },
+        { name:"Bukit Timah Railway Station (Rail Corridor)", slug:"bukit-timah-railway-station", lat:1.3398, lng:103.7770, region:"North-West", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Bukit Brown Cemetery", slug:"bukit-brown-cemetery", lat:1.3388, lng:103.8291, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven, unpaved paths", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Haw Par Villa", slug:"haw-par-villa", lat:1.2820, lng:103.7815, region:"West", category:"Landmarks", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:false, text:"9AM–6PM daily", openHour:9, closeHour:18 } },
+        { name:"Alkaff Mansion (Telok Blangah)", slug:"alkaff-mansion", lat:1.2727, lng:103.8138, region:"West", category:"Street & Heritage", accessibility:"🥾 Hillside grounds", ticket:"🎟️ Free grounds", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Sembawang Park", slug:"sembawang-park", lat:1.4568, lng:103.8339, region:"North", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Pasir Ris Park", slug:"pasir-ris-park", lat:1.3815, lng:103.9509, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Punggol Waterway Park", slug:"punggol-waterway-park", lat:1.4054, lng:103.9077, region:"North-East", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Jewel Changi Airport (Rain Vortex)", slug:"jewel-changi-airport", lat:1.3603, lng:103.9894, region:"North-East", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"⚠️ Tripods restricted at peak hours", hours:{ open24:true, text:"24 hours (Rain Vortex light show 8PM & 9PM)" } },
+        { name:"Kong Meng San Phor Kark See Monastery", slug:"kong-meng-san-monastery", lat:1.3599, lng:103.8464, region:"North", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:false, text:"7AM–6PM daily", openHour:7, closeHour:18 } },
 
         // --- FURTHER EXPANSION: filling out North-East, North-West, South-West, South-East, South ---
-        { name:"Kusu Island", slug:"kusu-island", lat:1.2225, lng:103.8631, region:"South", category:"Beach & Outdoor", accessibility:"⛴️ Ferry access only", ticket:"🎟️ Ferry fare applies", tripod:"✅ Tripod OK" },
-        { name:"St John's Island", slug:"st-johns-island", lat:1.2211, lng:103.8481, region:"South", category:"Beach & Outdoor", accessibility:"⛴️ Ferry access only", ticket:"🎟️ Ferry fare applies", tripod:"✅ Tripod OK" },
-        { name:"Marina South Pier / Waterfront", slug:"marina-south-pier", lat:1.2635, lng:103.8636, region:"South-East", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Yishun Park (Therapeutic Garden)", slug:"yishun-park", lat:1.4295, lng:103.8354, region:"North", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Berlayer Creek (Labrador)", slug:"berlayer-creek", lat:1.2655, lng:103.8007, region:"South-West", category:"Beach & Outdoor", accessibility:"♿ Boardwalk accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Bedok Jetty", slug:"bedok-jetty", lat:1.3237, lng:103.9505, region:"East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Coney Island Park", slug:"coney-island-park", lat:1.4103, lng:103.9161, region:"North-East", category:"Beach & Outdoor", accessibility:"🥾 Rustic unpaved trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Lorong Halus Wetland", slug:"lorong-halus-wetland", lat:1.3739, lng:103.9294, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Serangoon Gardens", slug:"serangoon-gardens", lat:1.3603, lng:103.8703, region:"North-East", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Punggol Beach", slug:"punggol-beach", lat:1.4136, lng:103.9101, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Dairy Farm Nature Park", slug:"dairy-farm-nature-park", lat:1.3639, lng:103.7757, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Bollywood Veggies (Kranji Countryside)", slug:"bollywood-veggies", lat:1.4400, lng:103.7280, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free grounds", tripod:"✅ Tripod OK" },
-        { name:"Jurong Hill Park", slug:"jurong-hill-park", lat:1.3300, lng:103.7167, region:"North-West", category:"Gardens & Nature", accessibility:"🥾 Hillside paths", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Science Centre Singapore", slug:"science-centre-singapore", lat:1.3327, lng:103.7436, region:"North-West", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior / paid exhibits", tripod:"✅ Tripod OK outdoors" },
-        { name:"Gillman Barracks", slug:"gillman-barracks", lat:1.2762, lng:103.8032, region:"West", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" },
-        { name:"Kallang Riverside Park", slug:"kallang-riverside-park", lat:1.3006, lng:103.8722, region:"East", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK" }
+        { name:"Kusu Island", slug:"kusu-island", lat:1.2225, lng:103.8631, region:"South", category:"Beach & Outdoor", accessibility:"⛴️ Ferry access only", ticket:"🎟️ Ferry fare applies", tripod:"✅ Tripod OK", hours:{ open24:false, text:"Daylight hours (ferry schedule dependent)", openHour:7, closeHour:19 } },
+        { name:"St John's Island", slug:"st-johns-island", lat:1.2211, lng:103.8481, region:"South", category:"Beach & Outdoor", accessibility:"⛴️ Ferry access only", ticket:"🎟️ Ferry fare applies", tripod:"✅ Tripod OK", hours:{ open24:false, text:"Daylight hours (ferry schedule dependent)", openHour:7, closeHour:19 } },
+        { name:"Marina South Pier / Waterfront", slug:"marina-south-pier", lat:1.2635, lng:103.8636, region:"South-East", category:"Night & Skyline", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Yishun Park (Therapeutic Garden)", slug:"yishun-park", lat:1.4295, lng:103.8354, region:"North", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Berlayer Creek (Labrador)", slug:"berlayer-creek", lat:1.2655, lng:103.8007, region:"South-West", category:"Beach & Outdoor", accessibility:"♿ Boardwalk accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Bedok Jetty", slug:"bedok-jetty", lat:1.3237, lng:103.9505, region:"East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Coney Island Park", slug:"coney-island-park", lat:1.4103, lng:103.9161, region:"North-East", category:"Beach & Outdoor", accessibility:"🥾 Rustic unpaved trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Lorong Halus Wetland", slug:"lorong-halus-wetland", lat:1.3739, lng:103.9294, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Serangoon Gardens", slug:"serangoon-gardens", lat:1.3603, lng:103.8703, region:"North-East", category:"Street & Heritage", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Punggol Beach", slug:"punggol-beach", lat:1.4136, lng:103.9101, region:"North-East", category:"Beach & Outdoor", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Dairy Farm Nature Park", slug:"dairy-farm-nature-park", lat:1.3639, lng:103.7757, region:"North-West", category:"Beach & Outdoor", accessibility:"🥾 Uneven nature trails", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Bollywood Veggies (Kranji Countryside)", slug:"bollywood-veggies", lat:1.4400, lng:103.7280, region:"North-West", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free grounds", tripod:"✅ Tripod OK", hours:{ open24:false, text:"9AM–5:30PM (closed some Mondays)", openHour:9, closeHour:18 } },
+        { name:"Jurong Hill Park", slug:"jurong-hill-park", lat:1.3300, lng:103.7167, region:"North-West", category:"Gardens & Nature", accessibility:"🥾 Hillside paths", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Science Centre Singapore", slug:"science-centre-singapore", lat:1.3327, lng:103.7436, region:"North-West", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free exterior / paid exhibits", tripod:"✅ Tripod OK outdoors", hours:{ open24:false, text:"10AM–6PM (closed Mondays)", openHour:10, closeHour:18 } },
+        { name:"Gillman Barracks", slug:"gillman-barracks", lat:1.2762, lng:103.8032, region:"West", category:"Modern & Architecture", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } },
+        { name:"Kallang Riverside Park", slug:"kallang-riverside-park", lat:1.3006, lng:103.8722, region:"East", category:"Gardens & Nature", accessibility:"♿ Wheelchair accessible", ticket:"🎟️ Free", tripod:"✅ Tripod OK", hours:{ open24:true, text:"24 hours" } }
     ];
     const categories = [...new Set(locations.map(l => l.category))];
     const regions = ["North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West", "Central"];
@@ -580,6 +605,26 @@
     function locationBySlug(slug) { return locations.find(l => l.slug === slug); }
     function slugFor(name) { const l = locations.find(x => x.name === name); return l ? l.slug : name.toLowerCase().replace(/\s+/g,'-'); }
 
+    /* Escape user-submitted text before inserting into innerHTML — prevents stored XSS
+       from community photo names/captions/URLs (e.g. <img onerror=...> injection). */
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    /* Only allow http(s) image URLs — blocks javascript:, data:, and other unsafe schemes */
+    function safeImageUrl(url) {
+        if (!url || !url.trim()) return '';
+        try {
+            const u = new URL(url, window.location.href);
+            return (u.protocol === 'http:' || u.protocol === 'https:') ? u.href : '';
+        } catch (e) { return ''; }
+    }
+
     /* ============ FAVORITES (localStorage) ============ */
     function getFavorites() { try { return JSON.parse(localStorage.getItem('sgphoto_favorites') || '[]'); } catch(e) { return []; } }
     function isFavorite(name) { return getFavorites().includes(name); }
@@ -702,6 +747,20 @@
     function crowdClass(level) { return `crowd-${level}`; }
 
     /* ============================================================
+       OPENING HOURS — "Open now" / "Closed" badge, computed from
+       each location's structured hours data + the current SGT hour.
+       Note: doesn't account for specific closed-days beyond what's
+       in the display text (e.g. Science Centre's Monday closure is
+       shown in text but not factored into the open/closed boolean).
+       ============================================================ */
+    function isOpenNow(loc) {
+        if (!loc.hours) return true; // no data — assume open rather than wrongly flag as closed
+        if (loc.hours.open24) return true;
+        const { hourNum } = getSingaporeParts();
+        return hourNum >= loc.hours.openHour && hourNum < loc.hours.closeHour;
+    }
+
+    /* ============================================================
        WEATHER — real per-location current conditions via Open-Meteo
        (free, no API key). Batched into a single multi-coordinate call.
        ============================================================ */
@@ -731,6 +790,7 @@
         let map;
         let markerRefs = {};
         const currentBalloonPhoto = {};
+        let clusterGroup;
 
         function categoryColor(cat) {
             const colors = { "Landmarks":"#4285F4", "Gardens & Nature":"#0f9d58", "Street & Heritage":"#f4b400", "Night & Skyline":"#ab47bc", "Beach & Outdoor":"#00acc1", "Modern & Architecture":"#e53935" };
@@ -740,6 +800,13 @@
         async function initMap() {
             map = L.map('map').setView([1.3521, 103.8198], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
+
+            // Cluster nearby pins (e.g. the dense Central/downtown cluster) so they don't
+            // visually overlap and become impossible to tap — expands automatically on zoom.
+            clusterGroup = (typeof L.markerClusterGroup === 'function')
+                ? L.markerClusterGroup({ maxClusterRadius: 45, disableClusteringAtZoom: 17, spiderfyOnMaxZoom: true })
+                : L.layerGroup(); // graceful fallback if the CDN plugin fails to load
+            map.addLayer(clusterGroup);
 
             locations.forEach((loc) => { addOrUpdateMarker(loc); });
 
@@ -751,8 +818,13 @@
             if (locParam) {
                 const loc = locationBySlug(locParam);
                 if (loc) {
-                    map.setView([loc.lat, loc.lng], 15);
-                    setTimeout(() => { markerRefs[loc.name].openPopup(); showLocationPosts(loc.name); }, 400);
+                    const marker = markerRefs[loc.name];
+                    if (clusterGroup.zoomToShowLayer && marker) {
+                        clusterGroup.zoomToShowLayer(marker, () => { marker.openPopup(); showLocationPosts(loc.name); });
+                    } else {
+                        map.setView([loc.lat, loc.lng], 15);
+                        setTimeout(() => { marker && marker.openPopup(); showLocationPosts(loc.name); }, 400);
+                    }
                     return;
                 }
             }
@@ -763,12 +835,14 @@
             const fav = isFavorite(loc.name);
             const color = fav ? '#ff8f00' : categoryColor(loc.category);
             const markerHtml = `<div class="map-marker-pulse" style="width: 16px; height: 16px; background-color: ${color}; border-radius: 50%; border: 3px solid white;"></div>`;
-            if (markerRefs[loc.name]) { map.removeLayer(markerRefs[loc.name]); }
+            if (markerRefs[loc.name]) { clusterGroup.removeLayer(markerRefs[loc.name]); }
             const marker = L.marker([loc.lat, loc.lng], {
-                icon: L.divIcon({ html: markerHtml, className: 'custom-marker', iconSize: [16,16], iconAnchor: [8,8] })
-            }).addTo(map);
+                icon: L.divIcon({ html: markerHtml, className: 'custom-marker', iconSize: [16,16], iconAnchor: [8,8] }),
+                title: loc.name
+            });
             marker.bindPopup(() => buildBalloonPopupHTML(loc.name), { maxWidth: 300, minWidth: 280, closeButton: true, autoClose: true });
             marker.on('click', () => showLocationPosts(loc.name));
+            clusterGroup.addLayer(marker);
             markerRefs[loc.name] = marker;
         }
         function refreshMarker(name) { const loc = locations.find(l => l.name === name); if (loc) addOrUpdateMarker(loc); }
@@ -789,7 +863,8 @@
             const w = weatherByLocation[locationName];
             const tempTxt = w && w.temperature_2m !== undefined ? `${Math.round(w.temperature_2m)}°C ${weatherCodeText(w.weather_code)}` : t('weatherUnavailable');
             const crowd = estimateCrowdLevel(loc);
-            return `<div class="balloon-live-row"><span>🌡️ ${tempTxt}</span><span>👥 ${crowdLabel(crowd)}</span></div>`;
+            const open = isOpenNow(loc);
+            return `<div class="balloon-live-row"><span>🌡️ ${tempTxt}</span><span>👥 ${crowdLabel(crowd)}</span><span>${open ? t('openNow') : t('closedNow')}</span></div>`;
         }
 
         function balloonInnerHTML(locationName, photo) {
@@ -804,7 +879,7 @@
             return `
                 <div class="balloon-header">
                     <div><div class="balloon-location-name">🎈 ${locationName}</div><div class="balloon-subtitle">Random photo pick</div></div>
-                    <button class="balloon-fav" data-action="fav" data-location="${locationName}" title="Favorite">${fav ? '⭐' : '☆'}</button>
+                    <button class="balloon-fav" data-action="fav" data-location="${locationName}" title="Favorite" aria-label="${fav ? 'Remove ' + locationName + ' from favorites' : 'Add ' + locationName + ' to favorites'}" aria-pressed="${fav}">${fav ? '⭐' : '☆'}</button>
                 </div>
                 <div class="balloon-photo-display">
                     <img class="balloon-photo-img" src="${thumbUrl(slug, 280, 140)}" alt="${photo.title}" loading="lazy" onerror="this.style.display='none'"/>
@@ -864,17 +939,32 @@
         let searchQuery = '';
 
         function filteredLocations() {
+            const query = searchQuery.trim().toLowerCase();
+            const analysis = photoAlgorithm.analyzePhotos();
             return locations.filter(loc => {
-                const matchesSearch = loc.name.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesSearch = !query || locationMatchesSearch(loc, query, analysis);
                 const matchesCategory = activeCategory === 'all' || loc.category === activeCategory;
                 const matchesRegion = activeRegion === 'all' || loc.region === activeRegion;
                 let matchesTime = true;
                 if (activeTimeFilter !== 'all') {
-                    const analysis = photoAlgorithm.analyzePhotos();
                     matchesTime = analysis[loc.name] && analysis[loc.name].bestTime === activeTimeFilter;
                 }
                 return matchesSearch && matchesCategory && matchesRegion && matchesTime;
             });
+        }
+
+        // Search now looks beyond just the location name — also matches category, region,
+        // best time-of-day, and hashtags, so e.g. searching "sunset" or "temple" finds relevant spots.
+        function locationMatchesSearch(loc, query, analysis) {
+            if (loc.name.toLowerCase().includes(query)) return true;
+            if (loc.category.toLowerCase().includes(query)) return true;
+            if (loc.region.toLowerCase().includes(query)) return true;
+            const locAnalysis = analysis[loc.name];
+            if (locAnalysis) {
+                if (locAnalysis.bestTime && locAnalysis.bestTime.toLowerCase().includes(query)) return true;
+                if (locAnalysis.publicPosts.some(p => p.hashtags.toLowerCase().includes(query))) return true;
+            }
+            return false;
         }
 
         function renderHome() {
@@ -894,17 +984,17 @@
                 </div>
                 <div class="search-box">
                     <span class="search-icon">🔍</span>
-                    <input type="text" class="search-input" id="searchInput" placeholder="${t('searchPlaceholder')}" value="${searchQuery}" oninput="onSearchInput(this.value)" />
+                    <input type="text" class="search-input" id="searchInput" placeholder="${t('searchPlaceholder')}" value="${searchQuery}" oninput="onSearchInput(this.value)" aria-label="${t('searchPlaceholder')}" />
                 </div>
                 <div class="filter-group-label">${t('allRegions')}</div>
                 <div class="filter-chips" id="regionChips">
-                    <div class="chip region-chip ${activeRegion==='all'?'active':''}" onclick="setRegion('all')">${t('allRegions')}</div>
-                    ${regions.map(r => `<div class="chip region-chip ${activeRegion===r?'active':''}" onclick="setRegion('${r}')">${r}</div>`).join('')}
+                    <button class="chip region-chip ${activeRegion==='all'?'active':''}" onclick="setRegion('all')" aria-pressed="${activeRegion==='all'}">${t('allRegions')}</button>
+                    ${regions.map(r => `<button class="chip region-chip ${activeRegion===r?'active':''}" onclick="setRegion('${r}')" aria-pressed="${activeRegion===r}">${r}</button>`).join('')}
                 </div>
                 <div class="filter-group-label">${t('allCategories')}</div>
                 <div class="filter-chips" id="categoryChips">
-                    <div class="chip ${activeCategory==='all'?'active':''}" onclick="setCategory('all')">${t('allCategories')}</div>
-                    ${categories.map(c => `<div class="chip ${activeCategory===c?'active':''}" onclick="setCategory('${c}')">${c}</div>`).join('')}
+                    <button class="chip ${activeCategory==='all'?'active':''}" onclick="setCategory('all')" aria-pressed="${activeCategory==='all'}">${t('allCategories')}</button>
+                    ${categories.map(c => `<button class="chip ${activeCategory===c?'active':''}" onclick="setCategory('${c}')" aria-pressed="${activeCategory===c}">${c}</button>`).join('')}
                 </div>
                 <select class="select-input" onchange="setTimeFilter(this.value)">
                     <option value="all" ${activeTimeFilter==='all'?'selected':''}>${t('filterByTime')}: ${t('anyTime')}</option>
@@ -936,7 +1026,7 @@
                             <div class="loc-list-name">${loc.name}</div>
                             <div class="loc-list-meta">${loc.region} · ${loc.category} · <span class="${crowdClass(crowd)}" style="padding:1px 5px; border-radius:4px;">${crowdLabel(crowd)}</span></div>
                         </div>
-                        <span class="loc-list-star" onclick="event.stopPropagation(); quickToggleFav('${loc.name}')">${fav ? '⭐' : '☆'}</span>
+                        <button class="loc-list-star" onclick="event.stopPropagation(); quickToggleFav('${loc.name}')" aria-label="${fav ? 'Remove ' + loc.name + ' from favorites' : 'Add ' + loc.name + ' to favorites'}" aria-pressed="${fav}">${fav ? '⭐' : '☆'}</button>
                     </div>
                 `;
             });
@@ -944,10 +1034,23 @@
         }
 
         function quickToggleFav(name) { toggleFavorite(name); refreshMarker(name); renderLocationList(); }
-        function onSearchInput(val) { searchQuery = val; renderLocationList(); }
-        function setCategory(cat) { activeCategory = cat; renderHome(); }
-        function setRegion(region) { activeRegion = region; renderHome(); }
-        function setTimeFilter(val) { activeTimeFilter = val; renderLocationList(); }
+        function onSearchInput(val) { searchQuery = val; renderLocationList(); updateMarkerVisibility(); }
+        function setCategory(cat) { activeCategory = cat; renderHome(); updateMarkerVisibility(); }
+        function setRegion(region) { activeRegion = region; renderHome(); updateMarkerVisibility(); }
+
+        /* Dim pins that don't match the active region/category filter so the map visually
+           reflects the sidebar filters, not just the location list. */
+        function updateMarkerVisibility() {
+            if (!markerRefs) return;
+            const matching = new Set(filteredLocations().map(l => l.name));
+            const filtersActive = activeRegion !== 'all' || activeCategory !== 'all';
+            locations.forEach(loc => {
+                const marker = markerRefs[loc.name];
+                if (!marker || !marker.setOpacity) return;
+                marker.setOpacity(!filtersActive || matching.has(loc.name) ? 1 : 0.25);
+            });
+        }
+        function setTimeFilter(val) { activeTimeFilter = val; renderLocationList(); updateMarkerVisibility(); }
 
         /* ============ Singapore-wide WEATHER + GOLDEN HOUR (home widget) ============ */
         async function fetchWeather() {
@@ -980,7 +1083,7 @@
                     ${goldenHourNow ? `<div class="golden-hour-tag">${t('goldenHourSoon')}</div>` : ''}
                 `;
             } catch (e) {
-                el.innerHTML = `<div class="weather-row"><div class="weather-detail">${t('weatherNow')}<br/>${t('weatherUnavailable')}</div></div>`;
+                el.innerHTML = `<div class="weather-row"><div class="weather-detail">${t('weatherNow')}<br/>${t('weatherUnavailable')}</div></div><button class="toggle-btn secondary" style="margin-top:8px; margin-bottom:0;" onclick="fetchWeather()">${t('retryWeather')}</button>`;
             }
         }
     </script>
@@ -1009,7 +1112,7 @@
                                 <div style="font-weight:600; font-size:0.85em; cursor:pointer;" onclick="showLocationPosts('${loc.name}')">${loc.name}</div>
                                 <div style="font-size:0.72em; color:#80868b;">${loc.region} · ${loc.category} · <span class="${crowdClass(crowd)}" style="padding:1px 5px; border-radius:4px;">${crowdLabel(crowd)}</span></div>
                             </div>
-                            <button class="itinerary-remove" onclick="toggleItinerary('${loc.name}'); renderItineraryPanel();">✕</button>
+                            <button class="itinerary-remove" onclick="toggleItinerary('${loc.name}'); renderItineraryPanel();" aria-label="Remove ${loc.name} from itinerary">✕</button>
                         </div>
                     `;
                 });
@@ -1048,7 +1151,7 @@
                     html += `
                         <div class="loc-list-item" onclick="showLocationPosts('${loc.name}')">
                             <div><div class="loc-list-name">${loc.name}</div><div class="loc-list-meta">${loc.region} · ${loc.category}</div></div>
-                            <span class="loc-list-star" onclick="event.stopPropagation(); quickToggleFav('${loc.name}'); renderFavoritesPanel();">⭐</span>
+                            <button class="loc-list-star" onclick="event.stopPropagation(); quickToggleFav('${loc.name}'); renderFavoritesPanel();" aria-label="Remove ${loc.name} from favorites" aria-pressed="true">⭐</button>
                         </div>
                     `;
                 });
@@ -1057,25 +1160,45 @@
             sidebarContent.innerHTML = html;
         }
 
-        function toggleAlgorithmPanel() {
+        function toggleAlgorithmPanel(showAll) {
             const recs = photoAlgorithm.getRecommendations();
             const sidebarContent = document.getElementById('sidebarContent');
             let html = `<button class="toggle-btn" onclick="renderHome()">${t('backToMap')}</button>
                 <div style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 8px; padding: 14px; margin-bottom: 12px; border-left: 4px solid #7c3aed;">
                     <div style="font-weight:700; color:#7c3aed; margin-bottom:6px; font-size:0.9em; text-transform:uppercase;">🤖 AI Recommendations</div>
-                    <p style="font-size:0.85em; color:#5f6368;">Ranked across all 37 locations by public photo post engagement</p>
-                </div>
-                <div class="recommendation-grid">`;
-            recs.forEach((rec, i) => {
-                html += `
-                    <div class="recommendation-item" onclick="showLocationPosts('${rec.location}')">
-                        <div class="rec-location">${i+1}. ${rec.location}</div>
-                        <div class="rec-info"><span style="font-size:0.8em; color:#5f6368;">⏰ ${rec.bestTime} | 📸 ${rec.totalPhotos}</span><span class="rec-score">${rec.score}/100</span></div>
-                    </div>
-                `;
-            });
-            html += `</div>`;
+                    <p style="font-size:0.85em; color:#5f6368;">Ranked across all ${locations.length} locations by public photo post engagement</p>
+                </div>`;
+
+            if (!showAll) {
+                html += `<div class="recommendation-grid">`;
+                recs.slice(0, 15).forEach((rec, i) => {
+                    html += recommendationItemHTML(rec, i + 1);
+                });
+                html += `</div>
+                    <button class="toggle-btn secondary" style="margin-top:10px;" onclick="toggleAlgorithmPanel(true)">Show all ${recs.length}, grouped by region</button>`;
+            } else {
+                html += `<button class="toggle-btn secondary" style="margin-bottom:10px;" onclick="toggleAlgorithmPanel(false)">↑ Back to Top 15</button>`;
+                regions.forEach(region => {
+                    const regionRecs = recs.filter(r => {
+                        const loc = locations.find(l => l.name === r.location);
+                        return loc && loc.region === region;
+                    });
+                    if (regionRecs.length === 0) return;
+                    html += `<div class="section-title" style="margin-top:16px;">📍 ${region} (${regionRecs.length})</div><div class="recommendation-grid">`;
+                    regionRecs.forEach((rec, i) => { html += recommendationItemHTML(rec, i + 1); });
+                    html += `</div>`;
+                });
+            }
             sidebarContent.innerHTML = html;
+        }
+
+        function recommendationItemHTML(rec, rank) {
+            return `
+                <div class="recommendation-item" onclick="showLocationPosts('${rec.location}')">
+                    <div class="rec-location">${rank}. ${rec.location}</div>
+                    <div class="rec-info"><span style="font-size:0.8em; color:#5f6368;">⏰ ${rec.bestTime} | 📸 ${rec.totalPhotos}</span><span class="rec-score">${rec.score}/100</span></div>
+                </div>
+            `;
         }
     </script>
 
@@ -1083,21 +1206,32 @@
     <script>
         function liveConditionsHTML(loc) {
             const w = weatherByLocation[loc.name];
-            const tempTxt = w && w.temperature_2m !== undefined ? `${Math.round(w.temperature_2m)}°C ${weatherCodeText(w.weather_code)}` : t('weatherUnavailable');
+            const weatherMissing = !w || w.temperature_2m === undefined;
+            const tempTxt = weatherMissing ? t('weatherUnavailable') : `${Math.round(w.temperature_2m)}°C ${weatherCodeText(w.weather_code)}`;
             const crowd = estimateCrowdLevel(loc);
             const p = getSingaporeParts();
+            const open = isOpenNow(loc);
+            const hoursText = loc.hours ? loc.hours.text : '';
             return `
                 <div class="live-conditions">
                     <div class="live-conditions-title">📡 ${t('liveConditions')}</div>
                     <div class="live-conditions-row">
                         <div class="live-conditions-item">🕐 ${p.hour12}:${p.minute12} ${p.dayPeriod} SGT</div>
                         <div class="live-conditions-item">📅 ${p.weekday}, ${p.dateFormatted}</div>
-                        <div class="live-conditions-item">🌡️ ${tempTxt}</div>
+                        <div class="live-conditions-item">🌡️ ${tempTxt}${weatherMissing ? ` <button class="itinerary-remove" style="color:#1967d2;" onclick="retryLocationWeather('${loc.name}')" aria-label="Retry loading weather">${t('retryWeather')}</button>` : ''}</div>
                         <div class="live-conditions-item">👥 <span class="${crowdClass(crowd)}" style="padding:2px 6px; border-radius:5px;">${crowdLabel(crowd)}</span></div>
+                        <div class="live-conditions-item">${open ? t('openNow') : t('closedNow')}</div>
                     </div>
+                    ${hoursText ? `<div class="live-conditions-item" style="margin-top:6px;">🕒 ${t('openingHours')}: ${hoursText}</div>` : ''}
                     <div class="live-conditions-note">${t('crowdEstNote')}</div>
                 </div>
             `;
+        }
+
+        /* Retry the batched weather fetch and re-render whichever location detail is open */
+        async function retryLocationWeather(locationName) {
+            await fetchAllLocationWeather();
+            showLocationPosts(locationName);
         }
 
         function showLocationPosts(locationName) {
@@ -1106,12 +1240,13 @@
             const sidebarContent = document.getElementById('sidebarContent');
             const fav = isFavorite(locationName);
             const inItin = inItinerary(locationName);
+            focusListOnMobile();
 
             let html = `
                 <button class="toggle-btn" onclick="renderHome()">${t('backToMap')}</button>
                 <div class="location-name">
                     <span>${locationName}</span>
-                    <button class="fav-star-btn" onclick="quickToggleFav('${locationName}'); showLocationPosts('${locationName}');">${fav ? '⭐' : '☆'}</button>
+                    <button class="fav-star-btn" onclick="quickToggleFav('${locationName}'); showLocationPosts('${locationName}');" aria-label="${fav ? 'Remove ' + locationName + ' from favorites' : 'Add ' + locationName + ' to favorites'}" aria-pressed="${fav}">${fav ? '⭐' : '☆'}</button>
                 </div>
                 <div class="btn-row">
                     <button class="toggle-btn ${inItin ? 'itinerary-add-btn added' : 'itinerary-add-btn'}" onclick="toggleItinerary('${locationName}'); showLocationPosts('${locationName}');">${inItin ? t('addedToItinerary') : t('addToItinerary')}</button>
@@ -1138,7 +1273,7 @@
             platforms.forEach(platform => {
                 const pi = photoAlgorithm.getPlatformInfo(platform);
                 const count = posts.filter(p => p.platform === platform).length;
-                html += `<button class="platform-tab" onclick="filterByPlatform('${locationName}', '${platform}')">${pi.icon} <span class="platform-count">${count}</span></button>`;
+                html += `<button class="platform-tab" onclick="filterByPlatform('${locationName}', '${platform}')" aria-label="Filter photos by ${pi.name}, ${count} available">${pi.icon} <span class="platform-count">${count}</span></button>`;
             });
             html += `</div></div>`;
 
@@ -1165,7 +1300,14 @@
             sidebarContent.innerHTML = html;
             wireCommunityForm(locationName);
 
-            if (markerRefs[locationName]) { map.panTo(markerRefs[locationName].getLatLng()); }
+            const targetMarker = markerRefs[locationName];
+            if (targetMarker) {
+                if (clusterGroup && clusterGroup.zoomToShowLayer) {
+                    clusterGroup.zoomToShowLayer(targetMarker, () => {});
+                } else {
+                    map.panTo(targetMarker.getLatLng());
+                }
+            }
         }
 
         function filterByPlatform(locationName, platform) {
@@ -1210,11 +1352,15 @@
                 html += `<div class="community-empty">${t('noCommunityPhotos')}</div>`;
             } else {
                 photos.forEach(p => {
+                    const safeName = escapeHtml(p.name);
+                    const safeCaption = escapeHtml(p.caption);
+                    const safeDate = escapeHtml(p.date);
+                    const safeUrl = safeImageUrl(p.imageUrl);
                     html += `
                         <div class="community-photo-item">
-                            ${p.imageUrl ? `<img src="${p.imageUrl}" alt="" style="width:100%; max-height:160px; object-fit:cover; border-radius:6px; margin-bottom:6px;" onerror="this.style.display='none'"/>` : ''}
-                            <div style="font-weight:600; font-size:0.85em;">${p.name} <span style="font-weight:400; color:#999; font-size:0.85em;">· ${p.date}</span></div>
-                            ${p.caption ? `<div style="font-size:0.8em; color:#444; margin-top:2px;">${p.caption}</div>` : ''}
+                            ${safeUrl ? `<img src="${escapeHtml(safeUrl)}" alt="" style="width:100%; max-height:160px; object-fit:cover; border-radius:6px; margin-bottom:6px;" onerror="this.style.display='none'"/>` : ''}
+                            <div style="font-weight:600; font-size:0.85em;">${safeName} <span style="font-weight:400; color:#999; font-size:0.85em;">· ${safeDate}</span></div>
+                            ${safeCaption ? `<div style="font-size:0.8em; color:#444; margin-top:2px;">${safeCaption}</div>` : ''}
                         </div>
                     `;
                 });
@@ -1224,7 +1370,7 @@
                 <div class="community-form">
                     <input type="text" id="communityName" placeholder="${t('yourName')}" maxlength="40" />
                     <textarea id="communityCaption" rows="2" placeholder="${t('caption')}" maxlength="200"></textarea>
-                    <input type="url" id="communityImageUrl" placeholder="${t('imageUrlOptional')}" />
+                    <input type="url" id="communityImageUrl" placeholder="${t('imageUrlOptional')}" maxlength="500" />
                     <button class="toggle-btn secondary" id="communitySubmitBtn">${t('submit')}</button>
                 </div>
             </div>`;
@@ -1258,6 +1404,31 @@
 
     <!-- ============ LANGUAGE DROPDOWN + PWA + INIT ============ -->
     <script>
+        /* ============ MOBILE VIEW TOGGLE (fix for cramped mobile layout) ============ */
+        function toggleMobileView() {
+            const container = document.querySelector('.container');
+            const btn = document.getElementById('mobileViewToggle');
+            if (container.classList.contains('mobile-list-focus')) {
+                container.classList.remove('mobile-list-focus');
+                btn.textContent = '📋 List';
+            } else {
+                container.classList.remove('mobile-map-focus');
+                container.classList.add('mobile-list-focus');
+                btn.textContent = '🗺️ Map';
+            }
+            if (map) setTimeout(() => map.invalidateSize(), 250);
+        }
+        // Called when a location detail opens, so mobile users see it immediately without an extra tap
+        function focusListOnMobile() {
+            if (window.innerWidth > 768) return;
+            const container = document.querySelector('.container');
+            const btn = document.getElementById('mobileViewToggle');
+            if (container && !container.classList.contains('mobile-list-focus')) {
+                container.classList.add('mobile-list-focus');
+                if (btn) btn.textContent = '🗺️ Map';
+            }
+        }
+
         function applyLanguageStaticText() {
             document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
             const sel = document.getElementById('langSelect');
