@@ -2,7 +2,7 @@
 
 An interactive map of 18 top photography locations across Singapore. Tap any pin to pop open a **photo balloon** showing a random shot from that spot, shuffle for another, or jump straight to real posts on Instagram, Pexels, Unsplash, 500px, and iStock.
 
-**[🌐 Live Demo →](#)** *([singapore-in-focus](https://aaronjlam.github.io/singapore-in-focus/))*
+**[🌐 Live Demo →](#)** *(add your link here after deploying — see below)*
 
 ![Made with HTML/CSS/JS](https://img.shields.io/badge/stack-HTML%20%2F%20CSS%20%2F%20JS-blue)
 ![Leaflet.js](https://img.shields.io/badge/map-Leaflet.js-199900)
@@ -12,21 +12,21 @@ An interactive map of 18 top photography locations across Singapore. Tap any pin
 
 ## ✨ Features
 
-- 🗺️ **37 pinned Singapore locations across all 5 regions** — North, Central, West, East, and South, from Marina Bay Sands and Gardens by the Bay to Sungei Buloh, Pulau Ubin, Jurong Lake Gardens, and the Southern Ridges
+- 🗺️ **69 pinned Singapore locations across 9 compass regions** — North, North-East, East, South-East, South, South-West, West, North-West, and Central, from Marina Bay Sands and Gardens by the Bay to Coney Island Park, Kusu Island, Bollywood Veggies, and Berlayer Creek
 - 🎈 **Tap-to-pop photo balloons** — click/tap a pin for an animated balloon popup with a real thumbnail preview and a random photo pick
 - 🔀 **Shuffle button** — swap in another random photo from the same location without closing the balloon
-- 🔗 **185 real, working links** (5 per location) to Instagram hashtag pages, Pexels, Unsplash, 500px, and iStock
-- 🤖 **AI-style recommendations panel** — all 37 locations ranked by a popularity algorithm
+- 🔗 **345 real, working links** (5 per location) to Instagram hashtag pages, Pexels, Unsplash, 500px, and iStock
+- 🤖 **AI-style recommendations panel** — all 69 locations ranked by a popularity algorithm
 
 ### Feature set
 
 1. **📷 Real photo thumbnails** — balloon popups and post cards show real preview images (seeded per location via [Lorem Picsum](https://picsum.photos))
 2. **📸 User-submitted community photos** — anyone can post a photo/caption to a location's "Community Photos" section (stored in the browser via `localStorage`)
 3. **🧭 "Plan my shoot" itinerary builder** — add locations to an itinerary, auto-optimize the visiting order by proximity (nearest-neighbor), and see the route drawn on the map
-4. **🌤️ Live weather, per-location** — real current temperature and conditions for every one of the 37 locations, fetched in a single batched call to the free [Open-Meteo](https://open-meteo.com) API (no key needed), plus a Singapore-wide "golden hour soon" flag near sunset (via [sunrise-sunset.org](https://sunrise-sunset.org))
-5. **🕐 Live clock & date** — a real-time Singapore-time clock (updates every second) shown in the header and in each location's "Live Conditions" panel
+4. **🌤️ Live weather, per-location** — real current temperature and conditions for every one of the 69 locations, fetched in a single batched call to the free [Open-Meteo](https://open-meteo.com) API (no key needed), plus a Singapore-wide "golden hour soon" flag near sunset (via [sunrise-sunset.org](https://sunrise-sunset.org))
+5. **🕐 Live clock & date** — a real-time Singapore-time clock (updates every second), shown as **DD-MMM-YYYY** (e.g. `01-Sep-2026`) and **12-hour AM/PM** time (e.g. `09:31:11 PM`), in the header and in each location's "Live Conditions" panel
 6. **👥 Estimated crowd levels** — every location shows a Low/Medium/High/Very High crowd estimate that updates based on the current Singapore time-of-day and day-of-week against a per-category peak-hours model. *(Clearly labeled as an estimate — no free public API provides genuine live crowd-sensor data for these spots; see Known Limitations.)*
-7. **🔍 Search & filter bar** — filter by name, **region** (North/Central/West/East/South), category, or best time of day
+7. **🔍 Search & filter bar** — filter by name, **region** (9-way compass grid), category, or best time of day
 8. **⭐ Favorites** — star any location to save it to a personal shortlist, persisted in `localStorage`
 9. **🔗 Shareable location links** — every location has a `?loc=slug` deep link that opens straight to that pin and its balloon
 10. **🏷️ Accessibility & trip-info badges** — each location shows region, wheelchair accessibility, ticket requirements, and tripod policy
@@ -138,11 +138,13 @@ Everything is in the `<style>` block at the top of `index.html` — search for `
 
 ## ⚠️ Known Limitations
 
-- **Crowd levels are estimates, not live sensor data** — there is no free public API that reports genuine real-time crowd counts for these 37 locations. The app computes an honest, disclosed estimate from the current Singapore time-of-day, day-of-week, and each location's typical category pattern (e.g. landmarks peak at midday and evenings, nature reserves peak at dawn/dusk). This is clearly labeled in the UI ("Crowd level is an estimate based on time-of-day patterns, not a live sensor feed").
+- **The 9-region compass grid isn't an official government classification** — Singapore's official URA planning regions are only Central, East, North, North-East, and West (no South/South-East/South-West). The 9-way North/North-East/East/South-East/South/South-West/West/North-West/Central split used here is a compass grid computed from each location's coordinates relative to the Downtown Core (Raffles Place), added because it's genuinely useful for browsing. **Region counts are naturally uneven** — Central has 17 locations because Singapore's tourist attractions genuinely cluster around the downtown/Marina Bay area, while **South and South-East have only 2 and 1 respectively**, because Singapore's downtown core already sits near the island's southeast coast — there's very little landmass further south or southeast beyond a couple of ferry-only Southern Islands (Kusu, St John's) and one waterfront precinct (Marina South Pier, whose South-East classification is an editorial judgment call rather than a strict formula result, since the nearest real landmark fell just short of the compass threshold). This is disclosed here rather than force-fitting inaccurate labels onto locations that don't fit.
+- **Crowd levels are estimates, not live sensor data** — there is no free public API that reports genuine real-time crowd counts for these 69 locations. The app computes an honest, disclosed estimate from the current Singapore time-of-day, day-of-week, and each location's typical category pattern (e.g. landmarks peak at midday and evenings, nature reserves peak at dawn/dusk). This is clearly labeled in the UI ("Crowd level is an estimate based on time-of-day patterns, not a live sensor feed").
 - **Weather is genuinely real-time** — every location's temperature and conditions come from a single batched call to Open-Meteo using that location's actual coordinates, refreshed on load.
 - **Community photos & favorites are per-browser only** — they use `localStorage`, so they won't sync across devices or be visible to other visitors. To make community photos truly shared, connect a small backend (e.g. [Supabase](https://supabase.com) or [Firebase](https://firebase.google.com) free tier) and swap the `localStorage` calls in `addCommunityPhoto()` / `getCommunityPhotos()` for API calls.
 - **Thumbnails are illustrative, not verified location photos** — since there's no paid image API key wired in, thumbnail images come from Lorem Picsum seeded per location for a consistent "real photo" look. Swap in a real Unsplash/Pexels API key (both have free tiers) in `thumbUrl()` if you want thumbnails guaranteed to match the actual place.
-- **New locations' photo posts are auto-generated, not hand-curated** — the original 18 locations have hand-picked post titles/hashtags; the 19 newer locations (added to cover North/West/East/South more fully) have posts generated from a template (`generatePostsForLocation()`) using consistent, valid search-page links per platform, so they're just as clickable but less individually curated in wording.
+- **New locations' photo posts are auto-generated, not hand-curated** — the original 18 locations have hand-picked post titles/hashtags; the other 51 locations (added to cover all 9 regions and sourced from public travel blogs, Tripadvisor forum threads, and photography guides — see list below) have posts generated from a template (`generatePostsForLocation()`) using consistent, valid search-page links per platform, so they're just as clickable but less individually curated in wording.
+- **Sourcing for the expanded location list** — 16 spots (Tiong Bahru, Pinnacle@Duxton, Dempsey Hill, CHIJMES, ArtScience Museum, Victoria Theatre, National Gallery Singapore, Bukit Timah Railway Station, Bukit Brown Cemetery, Haw Par Villa, Alkaff Mansion, Sembawang Park, Pasir Ris Park, Punggol Waterway Park, Jewel Changi Airport, and Kong Meng San Phor Kark See Monastery) were identified via public web search across travel/photography blogs (Maps & Merlot, The Wandering Lens, TripZilla, Time Out Singapore) and a crowdsourced Tripadvisor forum thread on Singapore photography locations. A further 16 spots (Kusu Island, St John's Island, Marina South Pier, Yishun Park, Berlayer Creek, Bedok Jetty, Coney Island Park, Lorong Halus Wetland, Serangoon Gardens, Punggol Beach, Dairy Farm Nature Park, Bollywood Veggies, Jurong Hill Park, Science Centre Singapore, Gillman Barracks, and Kallang Riverside Park) were added specifically to populate the newly introduced North-East, North-West, South-West, South-East, and South regions. Coordinates for all of these are approximate (landmark-level accuracy), not survey-precise.
 - **Translations are functional, not professionally reviewed** — the 7-language UI strings aim for accuracy but haven't been reviewed by native speakers of every language; contributions/corrections via pull request are welcome.
 
 ## 📄 License
